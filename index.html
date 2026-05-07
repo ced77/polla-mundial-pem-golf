@@ -89,7 +89,7 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);overscroll-behavior:none;
 
 /* HEADER */
 .hdr{flex-shrink:0;background:var(--ink);padding:calc(var(--st)+10px) 16px 20px;position:relative;overflow:hidden}
-.hdr::after{content:'';position:absolute;bottom:-20px;left:-5%;width:110%;height:40px;background:var(--chalk);border-radius:50%;pointer-events:none}
+.hdr::after{display:none}
 .hdr-inner{position:relative;display:flex;align-items:center;justify-content:space-between}
 .hdr-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:#fff;line-height:1}
 .hdr-sub{font-size:9px;color:var(--grass);letter-spacing:3px;text-transform:uppercase;font-weight:600;margin-top:1px}
@@ -705,7 +705,10 @@ window.addEventListener('firebase-ready', ()=>{
 
   // Listen to settings (real-time)
   db.onSettings(data=>{
-    settings = Object.assign({results:{},pts:{result:1,exact:3,r32:3,r16:5,qf:8,sf:10,fin:20,champ:50},koUnlocked:false,koTeams:[]}, data);
+    const defaults={results:{},pts:{result:1,exact:3,r32:3,r16:5,qf:8,sf:10,fin:20,champ:50},koUnlocked:false,koTeams:[]};
+    settings=Object.assign({},defaults,data);
+    if(data.pts) settings.pts=Object.assign({},defaults.pts,data.pts);
+    if(data.results) settings.results=Object.assign({},data.results);
     renderGroups();
     renderKnockout();
     renderRanking();
@@ -1199,7 +1202,7 @@ function renderAdminResults(){
 }
 
 async function saveAdminResults(){
-  const results={};
+  const results=Object.assign({},settings.results||{});
   MATCHES.forEach(m=>{
     const h=document.getElementById(`ar-${m.id}-h`);
     const a=document.getElementById(`ar-${m.id}-a`);
