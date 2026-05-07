@@ -9,6 +9,69 @@
 <meta name="theme-color" content="#0a2e1a">
 <title>Polla Mundial · pem.golf</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<!-- ============================================================
+     FIREBASE — PEGA TU firebaseConfig AQUÍ
+     ============================================================ -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, getDocs, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDCQFl0s8qHkxZI1kj81J_IUGOwcmK2oLU",
+    authDomain: "polla-mundial-pem-golf.firebaseapp.com",
+    projectId: "polla-mundial-pem-golf",
+    storageBucket: "polla-mundial-pem-golf.firebasestorage.app",
+    messagingSenderId: "304808899108",
+    appId: "1:304808899108:web:7734ab0192e366517d9eb1",
+    measurementId: "G-ZE4HC8403R"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+
+  /* ── helpers ── */
+  const playerCol = () => collection(db, 'players');
+  const settingsDoc = () => doc(db, 'settings', 'global');
+
+  window._db = {
+    /* PLAYERS */
+    async savePlayer(player) {
+      await setDoc(doc(db, 'players', player.id), player);
+    },
+    async getPlayer(id) {
+      const snap = await getDoc(doc(db, 'players', id));
+      return snap.exists() ? snap.data() : null;
+    },
+    async deletePlayer(id) {
+      await deleteDoc(doc(db, 'players', id));
+    },
+    async updatePlayer(id, data) {
+      await updateDoc(doc(db, 'players', id), data);
+    },
+    onPlayers(cb) {
+      return onSnapshot(playerCol(), snap => {
+        cb(snap.docs.map(d => d.data()));
+      });
+    },
+    /* SETTINGS (results, pts, koUnlocked, koTeams) */
+    async saveSettings(data) {
+      await setDoc(settingsDoc(), data, { merge: true });
+    },
+    onSettings(cb) {
+      return onSnapshot(settingsDoc(), snap => {
+        cb(snap.exists() ? snap.data() : {});
+      });
+    },
+    async getSettings() {
+      const snap = await getDoc(settingsDoc());
+      return snap.exists() ? snap.data() : {};
+    },
+  };
+
+  window.dispatchEvent(new Event('firebase-ready'));
+</script>
+
 <style>
 :root{
   --ink:#0a2e1a;--ink2:#134d2e;--ink3:#1a6b3d;
@@ -35,7 +98,6 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);overscroll-behavior:none;
 .admin-pill{font-size:10px;font-weight:700;background:var(--gold);color:#fff;padding:3px 9px;border-radius:100px;display:none;cursor:pointer}
 .admin-pill.on{display:block}
 .lock-btn{font-size:18px;background:none;border:none;cursor:pointer;opacity:.4;padding:2px}
-.lock-btn:hover{opacity:.8}
 
 /* TABS */
 .tabs{flex-shrink:0;background:var(--card);border-bottom:1px solid var(--bdr);display:flex;padding:0 2px}
@@ -59,10 +121,6 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);overscroll-behavior:none;
 .b-red{background:var(--red-l);color:#991b1b}
 
 /* REGISTRATION */
-.reg-hero{text-align:center;padding:24px 0 16px}
-.reg-ball{font-size:64px;display:block;margin-bottom:12px}
-.reg-title{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:2px;color:var(--ink);margin-bottom:6px}
-.reg-desc{font-size:13px;color:var(--muted);line-height:1.6;max-width:280px;margin:0 auto}
 .form-group{margin-bottom:10px}
 .form-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;display:block}
 .form-input{width:100%;border:1.5px solid var(--bdr);border-radius:12px;padding:13px 14px;font-size:16px;font-family:'DM Sans',sans-serif;background:var(--card);color:var(--txt);outline:none;-webkit-appearance:none}
@@ -76,10 +134,8 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);overscroll-behavior:none;
 .picker-scroll::-webkit-scrollbar{display:none}
 .p-chip{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 11px;border-radius:12px;border:2px solid transparent;background:var(--chalk);cursor:pointer;transition:all .15s;position:relative}
 .p-chip.sel{border-color:var(--ink3);background:var(--grass-0)}
-.p-chip-flag{font-size:22px;line-height:1}
 .p-chip-name{font-size:9px;font-weight:700;color:var(--txt);max-width:54px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .p-chip-cnt{position:absolute;top:1px;right:1px;background:var(--ink3);color:#fff;font-size:8px;font-weight:700;border-radius:100px;padding:1px 4px;min-width:14px;text-align:center}
-
 .grp-lbl{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;color:var(--ink2);padding:14px 2px 6px}
 
 /* MATCH CARD */
@@ -96,7 +152,7 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);overscroll-behavior:none;
 .p-opt.ph{background:var(--grass-0);color:var(--ink3)}
 .p-opt.pd{background:var(--gold-l);color:var(--gold-d)}
 .p-opt.pa{background:var(--grass-0);color:var(--ink3)}
-.p-opt.locked{opacity:.4;pointer-events:none}
+.p-opt.lk{opacity:.35;pointer-events:none}
 
 /* KNOCKOUT */
 .ko-lock{text-align:center;padding:50px 20px}
@@ -112,8 +168,8 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);overscroll-behavior:none;
 .team-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .team-opt{display:flex;align-items:center;gap:10px;padding:11px 12px;background:var(--card);border-radius:12px;border:2px solid var(--bdr);cursor:pointer;transition:all .15s}
 .team-opt.sel{border-color:var(--ink3);background:var(--grass-0)}
-.team-opt.sel-final{border-color:var(--gold);background:var(--gold-l)}
-.team-opt.sel-champ{border-color:#f59e0b;background:#fef3c7;box-shadow:0 0 0 3px rgba(245,158,11,.2)}
+.team-opt.sel-fin{border-color:var(--gold);background:var(--gold-l)}
+.team-opt.sel-champ{border-color:var(--gold);background:var(--gold-l);box-shadow:0 0 0 3px rgba(245,158,11,.2)}
 .team-opt-flag{font-size:22px;flex-shrink:0}
 .team-opt-name{font-size:11px;font-weight:700;color:var(--txt);line-height:1.3}
 
@@ -133,7 +189,7 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);overscroll-behavior:none;
 .lb-list{background:var(--card);border-radius:16px;border:1px solid var(--bdr);overflow:hidden}
 .lb-row{display:grid;grid-template-columns:28px 1fr auto;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--bdr)}
 .lb-row:last-child{border-bottom:none}
-.lb-row.me{background:var(--grass-0)}
+.lb-row.me-row{background:var(--grass-0)}
 .lb-rank{font-size:11px;color:var(--sub);font-weight:700;text-align:center}
 .lb-player{display:flex;align-items:center;gap:8px;overflow:hidden}
 .lb-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;flex-shrink:0}
@@ -143,20 +199,16 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);overscroll-behavior:none;
 .lb-det{font-size:10px;color:var(--sub)}
 
 /* PROFILE */
-.prof-top{text-align:center;padding:10px 0 20px}
 .prof-av{width:70px;height:70px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#fff;margin:0 auto 10px}
-.prof-name{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1px;color:var(--ink)}
-.prof-email{font-size:12px;color:var(--muted);margin-top:2px}
-.prof-status{display:inline-block;margin-top:8px;font-size:11px;font-weight:700;padding:4px 12px;border-radius:100px}
-
+.prof-name{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1px;color:var(--ink);text-align:center}
+.prof-email{font-size:12px;color:var(--muted);text-align:center;margin-top:2px}
 .stat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px}
 .stat-box{background:var(--card);border-radius:14px;border:1px solid var(--bdr);padding:14px 8px;text-align:center}
 .stat-num{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1px;line-height:1;color:var(--ink3)}
 .stat-lbl{font-size:10px;color:var(--muted);margin-top:3px;font-weight:500}
-
-.share-btn{width:100%;padding:14px;background:var(--ink);color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;letter-spacing:.3px;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px}
+.share-btn{width:100%;padding:14px;background:var(--ink);color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;letter-spacing:.3px;margin-bottom:8px}
 .share-btn:active{background:var(--ink2)}
-.share-btn.secondary{background:var(--card);color:var(--ink);border:1.5px solid var(--bdr)}
+.share-btn.sec{background:var(--card);color:var(--ink);border:1.5px solid var(--bdr)}
 
 /* STICKY SAVE */
 .sticky-save{position:sticky;bottom:calc(var(--tab-h)+var(--sb));z-index:40;background:rgba(255,255,255,.95);backdrop-filter:blur(8px);border-top:1px solid var(--bdr);padding:10px 14px;margin:0 -14px;display:flex;align-items:center;justify-content:space-between;gap:10px}
@@ -165,7 +217,7 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);overscroll-behavior:none;
 .sticky-btn:active{background:var(--ink2);transform:scale(.97)}
 .sticky-btn.gold{background:var(--gold-d)}
 
-/* ADMIN PANEL OVERLAY */
+/* ADMIN PANEL */
 .admin-overlay{position:fixed;inset:0;background:rgba(10,46,26,.97);z-index:200;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .35s cubic-bezier(.32,.72,0,1);max-width:430px;margin:0 auto}
 .admin-overlay.open{transform:translateY(0)}
 .admin-hdr{background:rgba(255,255,255,.05);padding:calc(var(--st)+12px) 16px 14px;border-bottom:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
@@ -181,30 +233,33 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);overscroll-behavior:none;
 
 .a-card{background:rgba(255,255,255,.06);border-radius:14px;border:1px solid rgba(255,255,255,.08);overflow:hidden;margin-bottom:10px}
 .a-card-hdr{padding:11px 14px 9px;border-bottom:1px solid rgba(255,255,255,.06);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.4);display:flex;align-items:center;justify-content:space-between}
-.a-row{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.05)}
+.a-row{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.05)}
 .a-row:last-child{border-bottom:none}
-.a-av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
-.a-name{font-size:14px;font-weight:600;color:#fff;flex:1}
+.a-av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;margin-top:2px}
+.a-info{flex:1;overflow:hidden}
+.a-name{font-size:14px;font-weight:600;color:#fff}
 .a-email{font-size:11px;color:rgba(255,255,255,.4);margin-top:1px}
 .a-preds{font-size:10px;color:rgba(255,255,255,.3);margin-top:1px}
-.a-actions{display:flex;gap:6px;align-items:center;flex-shrink:0}
-.a-btn{height:30px;padding:0 10px;border-radius:8px;border:none;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap}
+.a-actions{display:flex;flex-direction:column;gap:5px;align-items:flex-end;flex-shrink:0}
+.a-status{font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;white-space:nowrap}
+.as-pending{background:var(--gold-l);color:var(--gold-d)}
+.as-approved{background:var(--grass-l);color:var(--ink3)}
+.as-paid{background:#fef9c3;color:#713f12}
+.a-btns-row{display:flex;gap:5px}
+.a-btn{height:28px;padding:0 10px;border-radius:8px;border:none;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap}
 .a-btn-approve{background:var(--grass-l);color:var(--ink3)}
 .a-btn-paid{background:var(--gold-l);color:var(--gold-d)}
 .a-btn-edit{background:rgba(255,255,255,.12);color:#fff}
 .a-btn-del{background:var(--red-l);color:var(--red)}
-.a-status{font-size:11px;font-weight:700;padding:3px 9px;border-radius:100px}
-.as-pending{background:var(--gold-l);color:var(--gold-d)}
-.as-approved{background:var(--grass-l);color:var(--ink3)}
-.as-paid{background:#fef3c7;color:var(--gold-d)}
 
-.pts-row{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.05);font-size:13px;color:rgba(255,255,255,.8)}
+.pts-row{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.05);font-size:13px;color:rgba(255,255,255,.8)}
 .pts-row:last-child{border-bottom:none}
 .pts-input{width:52px;text-align:center;font-size:15px;font-weight:700;border:1.5px solid rgba(255,255,255,.15);border-radius:8px;padding:5px;font-family:'DM Sans',sans-serif;color:#fff;background:rgba(255,255,255,.08);outline:none}
 .pts-input:focus{border-color:var(--grass)}
 
-.ko-unlock-btn{width:100%;padding:14px;background:var(--grass);color:var(--ink);border:none;border-radius:12px;font-size:15px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;margin-bottom:10px}
-.ko-unlock-btn.locked{background:rgba(255,255,255,.1);color:rgba(255,255,255,.4)}
+.ko-unlock-btn{width:100%;padding:13px;border:none;border-radius:12px;font-size:14px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;margin-top:8px}
+.ko-unlock-btn.unlocked{background:var(--red-l);color:var(--red)}
+.ko-unlock-btn.locked{background:var(--grass);color:var(--ink)}
 
 .a-save-btn{width:100%;padding:13px;background:var(--grass);color:var(--ink);border:none;border-radius:12px;font-size:15px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;margin-top:10px}
 
@@ -227,7 +282,15 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);overscroll-behavior:none;
 .modal-pb.pd{background:var(--gold-l);color:var(--gold-d);border-color:var(--gold)}
 .modal-close{width:100%;margin-top:14px;padding:13px;background:var(--ink);color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer}
 
-/* PIN OVERLAY */
+/* KO TEAMS ADMIN */
+.ko-teams-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:12px 14px}
+.ko-team-input{display:flex;align-items:center;gap:6px}
+.ko-team-num{font-size:10px;font-weight:700;color:rgba(255,255,255,.3);width:14px;text-align:right;flex-shrink:0}
+.ko-team-flag{width:28px;border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:3px 4px;font-size:14px;text-align:center;font-family:'DM Sans',sans-serif;background:rgba(255,255,255,.07);color:#fff;outline:none}
+.ko-team-name{flex:1;border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:5px 6px;font-size:11px;font-family:'DM Sans',sans-serif;background:rgba(255,255,255,.07);color:#fff;outline:none;min-width:0}
+.ko-team-name:focus,.ko-team-flag:focus{border-color:var(--grass)}
+
+/* PIN */
 .pin-overlay{position:fixed;inset:0;background:var(--ink);z-index:400;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;opacity:0;pointer-events:none;transition:opacity .3s}
 .pin-overlay.open{opacity:1;pointer-events:all}
 .pin-title{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:2px;color:#fff}
@@ -240,31 +303,37 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);overscroll-behavior:none;
 .pin-key{height:58px;border-radius:14px;border:none;background:rgba(255,255,255,.1);color:#fff;font-size:22px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;transition:background .1s}
 .pin-key:active{background:rgba(255,255,255,.25)}
 .pin-key.del{background:rgba(239,68,68,.25);font-size:17px}
-.pin-key.cancel{background:rgba(255,255,255,.05);font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:rgba(255,255,255,.5)}
+.pin-key.cancel{background:rgba(255,255,255,.05);font-size:12px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.5)}
 
-/* TOAST */
+/* TOAST / SPINNER */
 #toast{position:fixed;bottom:calc(var(--tab-h)+var(--sb)+14px);left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 20px;border-radius:100px;font-size:13px;font-weight:600;white-space:nowrap;opacity:0;transition:opacity .3s;pointer-events:none;z-index:9999}
 #toast.show{opacity:1}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
 
 /* SPLASH */
 #splash{position:fixed;inset:0;background:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:10px;transition:opacity .5s}
 #splash.hide{opacity:0;pointer-events:none}
-.sp-ball{font-size:64px;animation:spin 2.5s linear infinite}
+.sp-ball{font-size:64px;animation:spin2 2.5s linear infinite}
 .sp-title{font-family:'Bebas Neue',sans-serif;font-size:38px;letter-spacing:3px;color:#fff;line-height:1}
 .sp-sub{font-size:11px;color:var(--grass);letter-spacing:4px;text-transform:uppercase;font-weight:600}
-@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+@keyframes spin2{from{transform:rotate(0)}to{transform:rotate(360deg)}}
 
 .empty-state{text-align:center;padding:40px 20px;color:var(--muted)}
 .empty-icon{font-size:44px;margin-bottom:10px}
 .empty-title{font-size:16px;font-weight:600;color:var(--txt);margin-bottom:6px}
 .empty-sub{font-size:13px;line-height:1.6}
+
+/* SYNC indicator */
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--grass);display:inline-block;margin-left:6px;flex-shrink:0}
+.sync-dot.off{background:var(--gold)}
 </style>
 </head>
 <body>
 
 <!-- SPLASH -->
 <div id="splash">
-  <div class="sp-ball">⚽</div>
+  <img src="data:image/png;base64,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" style="height:80px;width:auto;filter:brightness(0) invert(1);animation:spin2 3s ease-in-out infinite alternate" alt="pem.golf">
   <div class="sp-title">Polla Mundial</div>
   <div class="sp-sub">pem.golf · 2026</div>
 </div>
@@ -279,18 +348,10 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);overscroll-behavior:none;
   </div>
   <div class="pin-err" id="pin-err"></div>
   <div class="pin-pad">
-    <button class="pin-key" onclick="pk('1')">1</button>
-    <button class="pin-key" onclick="pk('2')">2</button>
-    <button class="pin-key" onclick="pk('3')">3</button>
-    <button class="pin-key" onclick="pk('4')">4</button>
-    <button class="pin-key" onclick="pk('5')">5</button>
-    <button class="pin-key" onclick="pk('6')">6</button>
-    <button class="pin-key" onclick="pk('7')">7</button>
-    <button class="pin-key" onclick="pk('8')">8</button>
-    <button class="pin-key" onclick="pk('9')">9</button>
-    <button class="pin-key cancel" onclick="closePin()">Cancelar</button>
-    <button class="pin-key" onclick="pk('0')">0</button>
-    <button class="pin-key del" onclick="pdel()">⌫</button>
+    <button class="pin-key" onclick="pk('1')">1</button><button class="pin-key" onclick="pk('2')">2</button><button class="pin-key" onclick="pk('3')">3</button>
+    <button class="pin-key" onclick="pk('4')">4</button><button class="pin-key" onclick="pk('5')">5</button><button class="pin-key" onclick="pk('6')">6</button>
+    <button class="pin-key" onclick="pk('7')">7</button><button class="pin-key" onclick="pk('8')">8</button><button class="pin-key" onclick="pk('9')">9</button>
+    <button class="pin-key cancel" onclick="closePin()">Cancelar</button><button class="pin-key" onclick="pk('0')">0</button><button class="pin-key del" onclick="pdel()">⌫</button>
   </div>
 </div>
 
@@ -299,54 +360,61 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);overscroll-behavior:none;
   <div class="admin-hdr">
     <div>
       <div class="admin-hdr-title">Panel Admin</div>
-      <div class="admin-hdr-sub">pem.golf · Polla Mundial 2026</div>
+      <div class="admin-hdr-sub">pem.golf · Mundial 2026</div>
     </div>
     <button class="admin-close" onclick="closeAdmin()">Cerrar ✕</button>
   </div>
   <div class="admin-tabs">
     <button class="admin-tab active" onclick="adminTab('players',this)">👥 Jugadores</button>
     <button class="admin-tab" onclick="adminTab('results',this)">📋 Resultados</button>
+    <button class="admin-tab" onclick="adminTab('ko',this)">⚔️ Eliminat.</button>
     <button class="admin-tab" onclick="adminTab('settings',this)">⚙️ Config</button>
   </div>
   <div class="admin-body">
 
-    <!-- PLAYERS -->
     <div id="a-players" class="admin-screen active">
       <div id="a-player-list"></div>
     </div>
 
-    <!-- RESULTS -->
     <div id="a-results" class="admin-screen">
-      <div class="a-card" style="margin-bottom:12px">
-        <div class="a-card-hdr">Fase de Grupos — Resultados</div>
+      <div class="a-card">
+        <div class="a-card-hdr">Resultados — Fase de Grupos</div>
         <div id="a-results-list"></div>
+      </div>
+      <button class="a-save-btn" onclick="saveAdminResults()">💾 Guardar resultados</button>
+    </div>
+
+    <div id="a-ko" class="admin-screen">
+      <div class="a-card" style="margin-bottom:10px">
+        <div class="a-card-hdr">32 Equipos clasificados</div>
+        <div class="ko-teams-grid" id="ko-teams-grid"></div>
+      </div>
+      <button class="a-save-btn" onclick="saveKOTeams()">💾 Guardar equipos</button>
+      <div class="a-card" style="margin-top:10px">
+        <div class="a-card-hdr">Estado eliminatorias</div>
+        <div style="padding:12px 14px">
+          <div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:10px">Al desbloquear, todos los jugadores aprobados podrán hacer sus predicciones de eliminatorias.</div>
+          <button class="ko-unlock-btn locked" id="ko-unlock-btn" onclick="toggleKO()">🔓 Desbloquear eliminatorias</button>
+        </div>
       </div>
     </div>
 
-    <!-- SETTINGS -->
     <div id="a-settings" class="admin-screen">
-      <div class="a-card" style="margin-bottom:12px">
-        <div class="a-card-hdr">Sistema de Puntos — Grupos</div>
+      <div class="a-card" style="margin-bottom:10px">
+        <div class="a-card-hdr">Puntos — Fase de Grupos</div>
         <div class="pts-row"><span>Resultado correcto</span><input class="pts-input" type="number" id="pts-result" min="0" max="99" value="1"></div>
         <div class="pts-row"><span>Marcador exacto (bonus)</span><input class="pts-input" type="number" id="pts-exact" min="0" max="99" value="3"></div>
       </div>
-      <div class="a-card" style="margin-bottom:12px">
-        <div class="a-card-hdr">Sistema de Puntos — Eliminatorias</div>
-        <div class="pts-row"><span>Round of 32 correcto</span><input class="pts-input" type="number" id="pts-r32" min="0" max="99" value="3"></div>
-        <div class="pts-row"><span>Round of 16 correcto</span><input class="pts-input" type="number" id="pts-r16" min="0" max="99" value="5"></div>
-        <div class="pts-row"><span>Cuartofinalista correcto</span><input class="pts-input" type="number" id="pts-qf" min="0" max="99" value="8"></div>
-        <div class="pts-row"><span>Semifinalista correcto</span><input class="pts-input" type="number" id="pts-sf" min="0" max="99" value="10"></div>
-        <div class="pts-row"><span>Finalista correcto</span><input class="pts-input" type="number" id="pts-fin" min="0" max="99" value="20"></div>
-        <div class="pts-row"><span>Campeón correcto</span><input class="pts-input" type="number" id="pts-champ" min="0" max="99" value="50"></div>
+      <div class="a-card" style="margin-bottom:10px">
+        <div class="a-card-hdr">Puntos — Eliminatorias</div>
+        <div class="pts-row"><span>Round of 32</span><input class="pts-input" type="number" id="pts-r32" min="0" max="99" value="3"></div>
+        <div class="pts-row"><span>Round of 16 (Octavos)</span><input class="pts-input" type="number" id="pts-r16" min="0" max="99" value="5"></div>
+        <div class="pts-row"><span>Cuartofinalista</span><input class="pts-input" type="number" id="pts-qf" min="0" max="99" value="8"></div>
+        <div class="pts-row"><span>Semifinalista</span><input class="pts-input" type="number" id="pts-sf" min="0" max="99" value="10"></div>
+        <div class="pts-row"><span>Finalista</span><input class="pts-input" type="number" id="pts-fin" min="0" max="99" value="20"></div>
+        <div class="pts-row"><span>Campeón</span><input class="pts-input" type="number" id="pts-champ" min="0" max="99" value="50"></div>
       </div>
-      <div class="a-card" style="margin-bottom:12px">
-        <div class="a-card-hdr">Fase Eliminatoria</div>
-        <div class="pts-row" style="flex-direction:column;align-items:flex-start;gap:10px">
-          <span style="color:rgba(255,255,255,.6);font-size:12px">Desbloquea las predicciones de eliminatorias para todos los jugadores aprobados. Esto les enviará una notificación.</span>
-          <button class="ko-unlock-btn" id="ko-unlock-btn" onclick="toggleKO()">Desbloquear eliminatorias</button>
-        </div>
-      </div>
-      <button class="a-save-btn" onclick="saveSettings()">💾 Guardar configuración</button>
+      <button class="a-save-btn" onclick="saveSettings()">💾 Guardar puntuación</button>
     </div>
 
   </div>
@@ -356,7 +424,7 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);overscroll-behavior:none;
 <div class="modal-back" id="edit-modal" onclick="closeEditModal(event)">
   <div class="modal-sheet">
     <div class="modal-handle"></div>
-    <div class="modal-title" id="edit-modal-title">Editar Predicciones</div>
+    <div class="modal-title">Editar Predicciones</div>
     <div class="modal-body">
       <label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);display:block;margin-bottom:6px">Jugador</label>
       <select class="modal-sel" id="edit-sel" onchange="loadEditPlayer()"></select>
@@ -376,68 +444,64 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);overscroll-behavior:none;
       </div>
       <div class="hdr-right">
         <span class="admin-pill" id="admin-pill" onclick="closeAdmin()">ADMIN ✕</span>
-        <button class="lock-btn" onclick="openPin()" title="Admin">🔐</button>
-        <div class="hdr-ball">⚽</div>
+        <button class="lock-btn" onclick="openPin()">🔐</button>
+        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAHgAAACCCAYAAACNbQytAAAX7klEQVR42u1de5RcRZn/6vuqbt1H3+7pnldmMiQhjA4OGB4DEqIQFDU5Au76mOOyKghqVllkZT26uiqjK7i7vsUTUdRFcFXWAJ4Vnws+FlYEDEgQAsFEQMMjCYEkk8z0697aP6ZqqNx0z/TESSBJ/c7pk8zcvo+p3/2e9dVXAA4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODgc9mBuCPcbDjInSH4eDgFTe5GUn/XE4QIGTLDMG8+bNKxYKhYXFYvGw5cuXy8z3nLY7wEAAAMPDw14YhiuEEL8koi2IWEXEcSJ62PO8a3K53MsYY3u8EA77T72SVrHmQy2cIwAAisXiiznndzHGVLMPIirf91cuXbrUdyQ/R+q1xeO72dOOjo7jiWgrACjGWC1LqvVzlTGmhBC/njNnTqcjefYkEzUh2Iw8xhiEYbhMCHGpEOLLQoiPRVH0Ckul7ibNjDFYtGhRFIbhOUT0tCa3iohKSvmFOI7fl8/nl4VhuMzzvMuJ6GlNckWTfIe2zdyR/BfaxiaET5JbLBaPFkLclpE2hYhKCPGrUqk0qL/PAQDz+fxyIcR1RPSodU4dEdM4js8Kw/DtiLiNc37P/Pnz2wAAFi9eHPi+v1J/t8wYU1LKz1vP6Ujem7h8xYoVolAoHB9F0SviOB6wJJIDALS3tx9JRFuMBGoJS/S/VQBQRLS1VCqdBACQz+dPJCKlv6/0d2taKn+AiEBEG81x3/fP1trhPCK6nTGW6k+NMaaCIPhkMy3hMEWCQQ/qCiJ6EBGV/tSEED8vFArHAwAMDg56QojbNRkVI7Xa+zUEVgBAcc4f6+7u7urr6wuklJcSkTk+SZaU8kIAwCiKLiKi7UKI25csWRJ7nvct63o1xlhd/2tejJ91d3d32S+ewxSe8MjICHqe901EVJbjU9EDq4hoZ7FYfHEcx0v0wFf079eHYXhmPp8/IgzDMznnD9oq1fO8L5kblUqlQSHED7QEV/Xxf7Acrx7GGEgp/82+hnnZLFNQZowpzvkfuru7j3Ykt2BzpZSXWl5rLROuGIl8yPO8mzRBdSJ6prOzs9++2Ny5c/uI6An9nYSItg8PD3uFQuFwKeU7fd9fiYgVSxKv0Kf6AACFQmEhEU2+AJzz30dR9LdBELxWSvl5Itqmn2lcP9NTcRwvcSRPEcp0dXUtJCKjBut64H8spbxQCHGbcYgswo16vVRfR2pNIAEAwjBcYZ8jpbzW8oiVfYxzfrO2px4AMCnlBZYDNjpnzpz59gN3dnb2CyH+z0iytvejhULh5Y7kPcEBADzP+6eMp/o9xAkHVSmFQojrLWITPfgqDMNlVjg1mVIsFovztJQae9soiZFoFf/w4OCgZ142IcRl5hwiWqPJNwkUAQCwfPlyKaX8lq1diGisUCi8Uj+HcNRa6plzfr0e1DoRjbe1tc231eacOXM6tWo03myKiCoIghMziQembW0eETdnHSoietrzvO8i4nbrOtVCobDAPJDneR80x4hoa39/fz4TEqFxCIMg+Li2zXUASIhoPJ/PLzvUSWb2hzEGRHSLkSwiul9LDbOlnHN+ra2eEVHlcrnBRgR3dnbmEPFJS1JTrUaPZ4yB53mTsa1+Uf7anBtF0ematKoOmT5sEUa2Y8gYgziOz9fmRWmbX4nj+IxDkeRGMzJcKcWEEHeaGBQRV9tkaYKZlPLvjROmVaJqb28/sgWCK1rtf8ZojUKhMISIqeVIXW2O9ff3S875ehMrI2ISBMHfWXEvWHlvqR2z042N15Jcy+Vyrz+USJ5MLeZyuY4wDHtGRka4+Z3neav14CjP89YY+2urcUuyTNjUKsEJIqY6jkYA4IwxEELcbpwpIhrt6+uba93rb6xQLNHZsRtyudxLlVINpw3z+fwJmuS6PieJoujsQ4Fkk1o8WQjxS0R8GhFHieghKeUnh4eHPUT8laWi12SkBQEAcrnci7TUqelUNADkGGNPWtd8rK+vL7AHO4qiN9vxtOd539H3lfql+4plEqrmnkR0jxBipZTyHfl8/iW9vb3t/f39Ur8011uhXkJEKo7jtx3M3jVqFXYs53yXlSqcJMr3/R9KKe8wx5oRXCqV5iLimDlfe9HHtEjwPdY1GQCwpUuX+pzzP+pnqSKiiqLoveYlGBkZQd/3P5dJvOwx60REzxDROiL6AyJWreOpkf4gCC44WEnG4eFhEkKstlOL2ak4LUlJE4IZAEBvb287Ij5jqV0VhuFQKwQj4upGjlsYhufpe9dM6OX7/oft+8dx/BohxK2ZTJaJ2dOp5pJNZKCf9YP6ugfNBAVp1XqqbTsRsc45/zoR3Wp7xdMRnAl96loyTsok/BkAwNDQUIFzvsXSClmCAQBwZGQEhRA3WYmPRCdZfhWG4TIdHwNjDPL5fH8QBBfra6UWuanJmmVibJO0qQFAWU9JfmxkZAQPFpLtJEbKGBvXtu7LjDHQkv3T7OA2I7ivry8goo02wb7vn9yI4GOOOaaNc/7UNARzAAA9c2RetNTOPxPR/Z7nfU1KeWEYhmcEQfBGIcTNmRmpJKO2y9ZEyW4FBJzzPy1atCiC3as39z0J+xJKqW475uWc/7harfJVq1bVu7q6zt26deuDaZoWACCd6jr5fD55/PHH6+aymhxeLpdbeYYpzQhjzHxnMt2plKoppQbTNB00UmxdJzEeufUzY4yh7/tXCiGuqlar85RSgb7+OOf8iVKp9OC99967a79L2b5EvV7ntnQppbYAQB0A5ObNmzdxzr8PAOfpQWo6t9rZ2ZmuW7eubpPVCrnm3lOQXFNKgVKKPM+7l4h+Uq1W35qmaa/5E/RzM/0SCpPk4Jx/J0mS49M0PdJcp1wurwCA1ePj49dkbzQ6OvrceLn79Aa7x7SglLJ/wYjotlauc9ppp6XTSXkz6UVErp9jD5a1mjUv4NZyufzBrq6uYzzPOx8R11hpSgQAgYhbhBD/FQTB6bVa7c2dnZ2nCiFu1sSnSimvXC5f7XneVVYNl9TXOahKb7lO3n/WTguGYfhqk/YFAAiC4LUmNdgk0WGIYkT0gLGX2gaf0ooNRsSsXZ88JwiCs0wo5HnercPDw2Tlpb9sT4L4vv/RFStWiOzfqJRC3/cv13/HZIaMiNbn8/nl+1Og9rsEp2lasaWpXq9HNhmIuMv+OU3TZppAKaXSvXkGxlhT1Z8kSd36sXr99dcnxWLxqCAI3luv18/RUs8BQCVJcvy11157jEVuXdtYValULvJ9/x2IWFFKCQAop2l6xM6dO38SBMGnh4eHPa2B+EElwVLKy2wpIKLXZST4pEwKspG0ASIC5/x+k3SYiQQT0dpmEhyG4atNHE5EWzjnv7czZlYIlBiPOAiCT2ViWrP8BfL5/Imc8/utON/Mb9/R1dX1Yuve7KCQ4Hq9XrckCTzP200KiWg0k6RoakuVUnWbKM5bFga65JJLsMF9WJqm45a26UiS5GjtUFW0xKH1SdM0TSqVyvt937/AkkilpZnv2LHjtwsWLDhZSvlNxphQShEAVOr1+ku2bt36mzAM38kYS/Q5eMATTESpTVKSJDU71BFC7ASAKgCgUgoYY9BIgpVSkDbT3y08xtq1a7MXZVrCO7SHbVYTJpo4yRhDRNzIOb8LER/VoZBSSqXVavXdOmmR2O8zAND69et3VCqV83zfP0dXf0oAqKZpGpbL5Ss9z7tGl+am+1qS94fR302CpZS7HYyiaCdjbFczr9s+1z6mw5SWzcX9999PGXLT/v7+fK1W+3QmjCPGGAohrg3D8GVHHXXUkfV6/QSl1AIiWgPPFr3nV61aZaTXJinRYRmNjY19q6ur6wTO+XWMMU//vlqtVt/62GOP3dLR0fHC58r5ms1M1gcyNvhV9vFMhkoxxu5qpEp1YcBvjRdNRKqtre2UFlOVG63ZJLOeCTzP+5KVSUthYp55PIqiszOTE5DL5d6AiOParqac81+0kFuenBLN5XLDRLTWzmlLKT97IE9CGIIvtsMkKeWyTIjBiOhBi+DVDQhGTfCvjfMyFcENZpM2DQwMxNZ9WaFQOBYRTb44AYBU11W9wvqeAACmC+13mXtrR+uNmXtPpSURYKKWKwiCs4QQn5BSfrxYLB7Wiv/xfPeiL8jEwWdk324iutvK5d7VaGJAq+Sb7UFuhWCYKG3dtGTJkkmC9dztTfbMECImcRy/Rn9HGEnXOfM7M2uUfrEXM0PPyQqI/aH7y5k4WGQnEgBg3M466cFTDVKNYxkPveENBwcHQScvJnPIW7dunTwtl8udkSTJK42DxBgjKeWFo6OjP9bk1vTYJDfeeOPF9Xr9RO0ICkTcWiqVzm9W2TEFEthzuSs74AlmjO0y9kw7Sn6WYESsmeNpmk41OWAnn1W5XG44QEEQVHSYY8IfWLduHQIAGxoaCsfHx7+gJm6STERb/JvlcvmKDLlpe3t7b61W+6iZXGCMsTAMz920adMj5jszzZzqa9X1Rx3IBCs9uDszsWzQIARKrBeiUf0S08ee0oNaBwDm+z5rcE+8++67awDwZzOgjLGkp6enBgDqvvvuuyxJkn49OeAR0fojjzzyQh2v1u0QanR09J/TNM2bGJdzfuXo6OiPtPQlcIiDAAB83z/Vrn3Si72MDTbO0/9axeYPLV26lGdUuCmGe5XJG3POt/X09HTAnnOrptDgDURkMk+XAQDEcbxYZ6lqJhuWy+VOzdhIBJhcArPLWgLzVG9vb7vtNB3qQJ0KPMauM/Y870MWwabw/Yem5BQRnzSVFI1CpSAI3iuEuLFQKJw+hRZiOjQ5NZfLvU4pxbRjtTqzguJTDcIUUwgwYtYg6YmGkQM5pNlnBLe1tc3Xy0hMOcy/ZgnO5/PLiKiMiMrzvJXTmY9sjNrsa5kEyxdtcoUQv9aaws4LMwBgw8PDHhFtsIrZRzs7O+fA7gvRD3kwAID58+e3EdFTJgyyVvPxTCLhRblc7tQWyDO9NnCaexMAwJw5c+YLIf47s0rxz7oOOvsiZWuwK7rU5jvPZajzvCZ4eHiYiGi9IZhz/t0Gqg5n+756Mfk5RPRkZiXgU21tbYuaEGbmsFea+ixtw88Ca8bIYc8U42qL4J82GVycBQlBAIB58+YVpZQ3WGnBcVP0VigUjp1KGpcuXcqJaJ2VBXtKL0A7YDNO+9QO6wzU/1gDdmeDTNVsSS4tX75cCiFute2tNg0/7+3tPWwKcs0KikFETKz1w9936nmaUIlz/l2L4D/oabbZJtmEZVfYUktEO3zf/0cr80TTpFbPs8+XUr7HqefmMDbtcovgzftA5e0WJ1vO0X1WO6XpPGDzrF/JTCqc4CR4mkHzPO8j1pKTsjWLMlvOFQ4NDQnO+X1WYmJDV1dXtz7eyuo+lpmxUkS0pb29PXb2dxqCpZTvtKshwzA8dhYJ5lp6zWrBGiLW4zg+aSbkAgAsWrQo0g1cDMG37SN/Yf8SsA+hAAD0oIF6dhahewqCZ9qIO1VKMc75xfr6nHN+9ejo6B3676u1SLB6+OGHe5VSnaCL8BljD+pHtvPUB162aV8TDABPTP5ioi6rR/9o6p/sjylGa6UfJAJAGkXRcUqpIV3TpXzfX2lIm0nsXK1WzSLwBAAAEdcdFOnEfU2w7/tPwsScr3FUDmeMwcKFC/OlUmluR0fHCzo6Ol5QKpXmLl68ONDlM3XYvaqx6fPX6/VlmlzGGNtw3HHH/Q6enZqbSXLkMFOAp+3xBmdlWxi4oaEhQUSPWI7W00T0OyJ6goh2EVGdiBL9/z9xzm/2ff/DxWLxqGl6Qpow7DorkfK9vfB6jTN4ScaDPtF50K0nO37ZoKGZ0tKaAMAeC6p1n8pVxWLx6CYDbTzfO6yExr/vhX9hOvlcbb2E46VSqW8/aboDVkUDPFvvvLaJE8VwAsQyBdFKKVav19+4Y8eOO4MgeBfsuQLRXCeaFGmi7XvxjIl2Ao+wXsotpVJpS+Y+zotuyjLi76zBYpzzWxHxNgD4M+f8aSJS1WrVA4C+JElOSNP05WmatgFALU1Tv1KpXOH7fr5cLn/KdoQ0Jj3lJEm8GYY1DADUvHnz/I0bN9ptCx/fsGFDZYbO2iEJswZoyOqHocIwPHOKjAP09PTMk1J+xurfUUVEZTUZI0v9/8yywd+eod00jWIW6iYqib7Otc7+zsDR6unpCe0kAuf8G1qD+PDs5P8eGiWKojfp+uWq7lj3yNDQUAjW5hp6iappP2iK3Fttk5BNc5qCgE/sby13wEsx5/xGK0v0gJ50sKspzAT9ZVLKFaZ0JwiCi+265DAMz9fnmO6yrzFlQbod0ptmQI7xoC/KlOic7QieeRjyPitlWYvj+IXWC8D6+voCnU82xXIXge6Gwzm/13jdnPObtD9GAMB0ivEx05eSc752aGjI9JZkrTwb5/xr+zCdevCHStrOHWtVNSop5bs0AR7AZLMzBRP1z8rzPBPTgu/7H2gyCSD08Y822TxDTEMyNphkeFybAQA3ydC6Lc5WS3DOf2Q7TLq73FW6hdGoXieU7QKb6mUmA/a5CxcuLHDON2pbXNELxN8/TaJksrclEW2ynss5WHurpoUQX7SSCaPWlN5kw9I4jhcXCoXD7fPy+fwJVg8MJYSwVSgBTHSls0p0TReAy61dy5jl0Jl8N4ui6GitWeqZhWXO/s7U0Yqi6DS7TlpKeT40r5jABucliJg2aERqKjo+ZIVjNS2Ra+I4PqvRwnLtxL3e0g7lYrE4z9nfvQuX2PLlyyUR/dFShzc3WKlnl8WaftHvMU4WEW3TqwyyNpIzxsD3/RGr4K5sbZh1axAEF+VyuVPiOB4oFAoLenp6OoQQn7fs7yNNCu8dZqCmP215rFVr55RGEkN6VcItFsG3T7F80yRWziWi7dmWwNY2OQkRjRPRNh1nJ1M1gXGYWVbrWLvjupTyY01snqft76sybfY/Mo2NJACA9vb2ASHEDQ02m6za/THtSZAmfS0dZhIy6bDkN5ZEbtBq0WSfJrNafX19cznnj5rmn0Q01mJNFxmnLZfLvczzvG8Q0cbsXocNdmG5x0nwLKjpMAzfbrJTOrFwJlhbwGpiXso5fygT3/7LDEKY3YoFBgYG4jiOT5ZSvl0I8XEi+gIRrSSiLdbqxgf2YnG3Qzb2XLhwYYGINluL0n5k2gzncrlTPc/7T6sh2TgAKCHEbVrSZ9pIjKZ6ITjn37acrA0Nlq867I0USyk/Y8XENc/zriSie+ztX60t6FbPwgbN2RYK/gS//Bp7f4eenh6XxZqN1GVnZ+cRRFRp0BrfNOdWeknpf1hdcmYzNpUAgFbD1BQRd+qloo7g2fCoPc/7nkVqzZKkXUKI70dRdJrl9MwGuSapMrkK0fO8r1phW+omGmaPYBbH8cnWpH5KRI+GYfiOQqFweIZY9hdqDG7bYcYYRFH0ciHEdYhoNIaZjnz1DBw5h+lCJmuHUcU5X5OZIKC9kFCEBq2KGGNQKpXmBkHwbiL6TcbWJzCxOPxJnR/fb/sqHPTOlu/7b7En7IMg+CtNkmeRzKf5NHwRGGPQ3d29IAzDtwkhbrD2/92t3a/Z3ay9vX3A2d9ZDpkGBgZiPV2XMsZSIcSNputsq0kH892BgYE4iqKjfN9/k5Tyc0KI24loLLvhtJW2rOtt605psffHgTfAzwMprgshvlqv11eA7kmFiLcj4qjuoTWGiGMAMKaUKiNiPU3TFBEpTVNfKRUDQLtSag4A9OqdXuyGagomKi+9SduA+DjnfFUQBFdt3759jf6ucapSJ3uz7GyFYbjMqvZIptlRbLpPzWwsmdmGbrsQ4sYoit6i+zXbTphzqPZDZmsnPLu/YaNt4uwdxabcWk7PGJWJ6D7O+dejKDq7VCrNzaj86br1OBU9i4mP1Pf9j9RqtXMBQCilhN5Mg7Rq9XSzbtLLRFMAqOnWSDsB4BnG2CYAeAQRH+KcrxVCPLBt27ZHdJO1bMhlVjKCI3g/Ynh4mDZv3iw2bNjA8vk8lctlGhsb86rVqkySRAgheLVaVYyxOue8GgRB+Ygjjhi75ZZbyhm7u4cZgInVEOqQU4/Pp7j4L3Rw7NkjlfkcuvbvAHmmZr9XmX8dHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcDi38P//pzsGVJel8AAAAAElFTkSuQmCC" style="height:36px;width:auto;filter:brightness(0) invert(1)" alt="pem.golf">
       </div>
     </div>
   </div>
 
-  <div class="tabs" id="tab-bar">
+  <div class="tabs">
     <button class="tab-btn active" onclick="showTab('groups',this)"><span class="tab-icon">⚽</span>Grupos</button>
     <button class="tab-btn" onclick="showTab('knockout',this)"><span class="tab-icon">🏆</span>Eliminat.</button>
     <button class="tab-btn" onclick="showTab('ranking',this)"><span class="tab-icon">📊</span>Ranking</button>
     <button class="tab-btn" onclick="showTab('profile',this)"><span class="tab-icon">👤</span>Mi Polla</button>
   </div>
 
-  <!-- GROUPS SCREEN -->
+  <!-- GROUPS -->
   <div id="screen-groups" class="screen active">
-    <!-- Registration shown if not registered -->
     <div id="reg-view">
       <div class="card">
-        <div style="padding:20px 18px 0;text-align:center">
-          <span style="font-size:56px">⚽</span>
+        <div style="padding:24px 18px 0;text-align:center">
+          <img src="data:image/png;base64,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" style="height:72px;width:auto" alt="pem.golf">
           <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px;color:var(--ink);margin-top:8px">Bienvenido</div>
           <div style="font-size:13px;color:var(--muted);line-height:1.6;margin:6px 0 18px;max-width:270px;margin-left:auto;margin-right:auto">Regístrate para hacer tus predicciones del Mundial 2026</div>
         </div>
         <div style="padding:0 18px 18px">
           <div class="form-group"><label class="form-label">Nombre completo</label><input class="form-input" type="text" id="reg-name" placeholder="Tu nombre..." autocomplete="name" autocapitalize="words"></div>
           <div class="form-group"><label class="form-label">Correo electrónico</label><input class="form-input" type="email" id="reg-email" placeholder="tu@email.com" autocomplete="email" inputmode="email"></div>
-          <button class="reg-btn" onclick="register()">Registrarme y hacer mis predicciones →</button>
-          <div class="reg-note">Tu predicción quedará pendiente de aprobación por el administrador. Al enviarla recibirás un resumen para copiar.</div>
+          <button class="reg-btn" id="reg-btn" onclick="register()">Registrarme →</button>
+          <div class="reg-note">Tu predicción quedará pendiente de aprobación por el administrador. Al guardar recibirás un resumen para compartir.</div>
         </div>
       </div>
     </div>
 
-    <!-- Predictions shown after registration -->
     <div id="pred-view" style="display:none">
       <div style="background:var(--ink);border-radius:14px;padding:14px 16px;margin-bottom:12px;display:flex;align-items:center;gap:12px">
-        <span style="font-size:28px">🗓️</span>
+        <span style="font-size:26px">🗓️</span>
         <div>
           <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1.5px;color:#fff;line-height:1">Fase de Grupos</div>
           <div style="font-size:11px;color:var(--grass-l);margin-top:2px">11 Jun – 27 Jun · 48 partidos</div>
         </div>
       </div>
-
       <div class="picker-scroll" id="group-picker"></div>
       <div id="groups-list"></div>
-
       <div class="sticky-save" id="groups-save-bar">
         <span class="sticky-note" id="groups-save-note">0 / 48 predicciones</span>
-        <button class="sticky-btn" onclick="saveGroupPreds()">Guardar</button>
+        <button class="sticky-btn" id="groups-save-btn" onclick="saveGroupPreds()">Guardar</button>
       </div>
     </div>
   </div>
 
-  <!-- KNOCKOUT SCREEN -->
+  <!-- KNOCKOUT -->
   <div id="screen-knockout" class="screen">
     <div id="ko-locked-view" class="ko-lock">
       <div class="ko-lock-icon">🔒</div>
       <div class="ko-lock-title">Eliminatorias bloqueadas</div>
-      <div class="ko-lock-sub">Las predicciones de eliminatorias se desbloquean una vez que finalice la fase de grupos. El administrador te notificará cuando estén disponibles.</div>
+      <div class="ko-lock-sub">Las predicciones de eliminatorias se desbloquean una vez que finalice la fase de grupos. El administrador te avisará.</div>
     </div>
     <div id="ko-open-view" style="display:none">
       <div style="background:var(--ink);border-radius:14px;padding:14px 16px;margin-bottom:12px;display:flex;align-items:center;gap:12px">
-        <span style="font-size:28px">⚔️</span>
+        <span style="font-size:26px">⚔️</span>
         <div>
           <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1.5px;color:#fff;line-height:1">Fase Eliminatoria</div>
           <div style="font-size:11px;color:var(--grass-l);margin-top:2px">Predice el ganador de cada ronda</div>
@@ -451,30 +515,27 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);overscroll-behavior:none;
     </div>
   </div>
 
-  <!-- RANKING SCREEN -->
+  <!-- RANKING -->
   <div id="screen-ranking" class="screen">
-    <div id="ranking-content"></div>
+    <div id="ranking-content"><div class="empty-state"><div class="empty-icon">📊</div><div class="empty-title">Cargando...</div></div></div>
   </div>
 
-  <!-- PROFILE SCREEN -->
+  <!-- PROFILE -->
   <div id="screen-profile" class="screen">
-    <div id="profile-content"></div>
+    <div id="profile-content"><div class="empty-state"><div class="empty-icon">👤</div><div class="empty-title">Cargando...</div></div></div>
   </div>
 </div>
 
 <div id="toast"></div>
 
 <script>
-/* ===================================================
-   CONFIG — CHANGE THESE
-   =================================================== */
+/* ============================================================
+   CONFIG
+   ============================================================ */
 const ADMIN_PIN = '1689';
-const SK = 'pollamundial_v4';
-const COLORS = ['#047857','#b45309','#b91c1c','#1d4ed8','#6d28d9','#be185d','#0e7490','#4d7c0f'];
+const MY_ID_KEY = 'polla_myid_v4';
+const COLORS = ['#047857','#b45309','#b91c1c','#1d4ed8','#6d28d9','#be185d','#0e7490','#4d7c0f','#7c2d12','#0f4c81'];
 
-/* ===================================================
-   DATA
-   =================================================== */
 const MATCHES = [
   {id:'g01',g:'A',h:'México',a:'EE.UU.',hf:'🇲🇽',af:'🇺🇸',d:'11 Jun'},
   {id:'g02',g:'A',h:'Canadá',a:'Uruguay',hf:'🇨🇦',af:'🇺🇾',d:'12 Jun'},
@@ -527,45 +588,39 @@ const MATCHES = [
 ];
 
 const KO_ROUNDS = [
-  {id:'r32', name:'Round of 32', pts_key:'r32', slots:16, note:''},
-  {id:'r16', name:'Round of 16 — Octavos', pts_key:'r16', slots:8, note:''},
-  {id:'qf',  name:'Cuartos de Final', pts_key:'qf', slots:4, note:''},
-  {id:'sf',  name:'Semifinales', pts_key:'sf', slots:2, note:''},
-  {id:'fin', name:'Final — Finalistas', pts_key:'fin', slots:2, note:''},
-  {id:'champ',name:'Campeón', pts_key:'champ', slots:1, note:''},
+  {id:'r32', name:'Round of 32', pts_key:'r32', slots:16},
+  {id:'r16', name:'Round of 16 · Octavos', pts_key:'r16', slots:8},
+  {id:'qf',  name:'Cuartos de Final', pts_key:'qf', slots:4},
+  {id:'sf',  name:'Semifinales', pts_key:'sf', slots:2},
+  {id:'fin', name:'Final · Finalistas', pts_key:'fin', slots:2},
+  {id:'champ',name:'Campeón 🏆', pts_key:'champ', slots:1},
 ];
 
-/* ===================================================
+/* ============================================================
    STATE
-   =================================================== */
-let S = {
-  players: [],          // [{id, name, email, approved, paid, gpreds, kopreds}]
-  results: {},          // {matchId: {home, away}}
-  pts: {result:1, exact:3, r32:3, r16:5, qf:8, sf:10, fin:20, champ:50},
-  koUnlocked: false,
-  koTeams: [],          // admin sets these — 32 teams for bracket
-  myId: null,
+   ============================================================ */
+let players = [];       // live from Firestore
+let settings = {        // live from Firestore
+  results:{}, pts:{result:1,exact:3,r32:3,r16:5,qf:8,sf:10,fin:20,champ:50},
+  koUnlocked:false, koTeams:[]
 };
+let myId = localStorage.getItem(MY_ID_KEY)||null;
 let isAdmin = false;
 let pinBuf = '';
 let currentGroup = 'A';
-let currentAdminTab = 'players';
 
-function save(){ localStorage.setItem(SK, JSON.stringify(S)); }
-function load(){
-  try{ const d=localStorage.getItem(SK); if(d) S=Object.assign(S,JSON.parse(d)); } catch(e){}
+const ini = n=>(n||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+const col = i=>COLORS[i%COLORS.length];
+const me = ()=>players.find(p=>p.id===myId)||null;
+const uid = ()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+
+function toast(msg,dur=2600){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),dur);
 }
-function me(){ return S.players.find(p=>p.id===S.myId)||null; }
-function ini(n){ return (n||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
-function col(i){ return COLORS[i%COLORS.length]; }
-function esc(s){ return String(s).replace(/'/g,"\\'"); }
-function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2600); }
-function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 
-/* ===================================================
-   TABS
-   =================================================== */
-function showTab(tab, el){
+function showTab(tab,el){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('screen-'+tab).classList.add('active');
@@ -576,29 +631,75 @@ function showTab(tab, el){
   if(tab==='profile') renderProfile();
 }
 
-/* ===================================================
+/* ============================================================
+   FIREBASE INIT
+   ============================================================ */
+window.addEventListener('firebase-ready', ()=>{
+  const db = window._db;
+
+  // Listen to all players (real-time)
+  db.onPlayers(list=>{
+    players = list;
+    renderGroups();
+    renderRanking();
+    renderProfile();
+    renderAdminPlayers();
+  });
+
+  // Listen to settings (real-time)
+  db.onSettings(data=>{
+    settings = Object.assign({results:{},pts:{result:1,exact:3,r32:3,r16:5,qf:8,sf:10,fin:20,champ:50},koUnlocked:false,koTeams:[]}, data);
+    renderGroups();
+    renderKnockout();
+    renderRanking();
+    renderProfile();
+    syncAdminSettings();
+  });
+
+  // Restore session
+  if(myId){
+    setTimeout(()=>{
+      const m=me();
+      if(m){ showPredView(); }
+      else { myId=null; localStorage.removeItem(MY_ID_KEY); }
+    },800);
+  }
+
+  // Hide splash after data arrives
+  setTimeout(()=>{
+    document.getElementById('splash').classList.add('hide');
+    setTimeout(()=>document.getElementById('splash').remove(),600);
+  },1400);
+});
+
+/* ============================================================
    REGISTRATION
-   =================================================== */
-function register(){
-  const name = document.getElementById('reg-name').value.trim();
-  const email = document.getElementById('reg-email').value.trim();
+   ============================================================ */
+async function register(){
+  const name=document.getElementById('reg-name').value.trim();
+  const email=document.getElementById('reg-email').value.trim();
   if(!name){ toast('Introduce tu nombre'); return; }
   if(!email||!email.includes('@')){ toast('Introduce un correo válido'); return; }
-  if(S.players.find(p=>p.email.toLowerCase()===email.toLowerCase())){
-    // Already registered — restore session
-    const existing = S.players.find(p=>p.email.toLowerCase()===email.toLowerCase());
-    S.myId = existing.id;
-    save();
-    showPredView();
-    toast('¡Bienvenido de nuevo, '+existing.name+'!');
-    return;
+
+  // Check if email already registered
+  const existing=players.find(p=>p.email.toLowerCase()===email.toLowerCase());
+  if(existing){
+    myId=existing.id; localStorage.setItem(MY_ID_KEY,myId);
+    showPredView(); toast('¡Bienvenido de nuevo, '+existing.name+'! 👋'); return;
   }
-  const player = { id:uid(), name, email, approved:false, paid:false, gpreds:{}, kopreds:{} };
-  S.players.push(player);
-  S.myId = player.id;
-  save();
-  showPredView();
-  toast('¡Registrado! Haz tus predicciones 🎯');
+
+  const btn=document.getElementById('reg-btn');
+  btn.innerHTML='<span class="spinner"></span>Registrando...'; btn.disabled=true;
+
+  const player={id:uid(), name, email, approved:false, paid:false, gpreds:{}, kopreds:{}};
+  try{
+    await window._db.savePlayer(player);
+    myId=player.id; localStorage.setItem(MY_ID_KEY,myId);
+    showPredView(); toast('¡Registrado! Haz tus predicciones 🎯');
+  } catch(e){
+    toast('Error de conexión. Intenta de nuevo.'); console.error(e);
+    btn.innerHTML='Registrarme →'; btn.disabled=false;
+  }
 }
 
 function showPredView(){
@@ -607,39 +708,30 @@ function showPredView(){
   renderGroups();
 }
 
-/* ===================================================
+/* ============================================================
    GROUPS
-   =================================================== */
+   ============================================================ */
 function renderGroups(){
-  const m = me();
+  const m=me();
   if(!m){ document.getElementById('reg-view').style.display='block'; document.getElementById('pred-view').style.display='none'; return; }
   document.getElementById('reg-view').style.display='none';
   document.getElementById('pred-view').style.display='block';
 
-  // Picker
   const groups=['A','B','C','D','E','F','G','H'];
   const preds=m.gpreds||{};
-  const picker=groups.map(g=>{
-    const cnt=MATCHES.filter(m=>m.g===g).filter(m=>preds[m.id]).length;
+  document.getElementById('group-picker').innerHTML=groups.map(g=>{
+    const cnt=MATCHES.filter(mx=>mx.g===g).filter(mx=>preds[mx.id]).length;
     return `<div class="p-chip${g===currentGroup?' sel':''}" onclick="setGroup('${g}')">
       ${cnt>0?`<div class="p-chip-cnt">${cnt}/6</div>`:''}
-      <div class="p-chip-flag" style="font-size:22px">🏟️</div>
+      <span style="font-size:20px">🏟️</span>
       <div class="p-chip-name">Grupo ${g}</div>
     </div>`;
   }).join('');
-  document.getElementById('group-picker').innerHTML=picker;
 
-  // Matches
-  const locked=m.approved; // once approved, predictions are locked (admin can still edit)
-  const groupMatches=MATCHES.filter(m=>m.g===currentGroup);
-  let html='';
-  groupMatches.forEach(match=>{
+  const locked=m.approved;
+  document.getElementById('groups-list').innerHTML=MATCHES.filter(mx=>mx.g===currentGroup).map(match=>{
     const pred=preds[match.id]||{};
-    const hs=pred.type==='home'?'ph':'';
-    const ds=pred.type==='draw'?'pd':'';
-    const as=pred.type==='away'?'pa':'';
-    const lk=locked?'locked':'';
-    html+=`<div class="match-card">
+    return `<div class="match-card">
       <div class="match-top">
         <div class="m-team"><div class="m-flag">${match.hf}</div><div class="m-name">${match.h}</div></div>
         <div class="m-vs">VS</div>
@@ -647,230 +739,194 @@ function renderGroups(){
       </div>
       <div class="m-date">${match.d}</div>
       <div class="pred-row">
-        <button class="p-opt ${hs} ${lk}" onclick="setGPred('${match.id}','home')">Gana<br>${match.h}</button>
-        <button class="p-opt ${ds} ${lk}" onclick="setGPred('${match.id}','draw')">Empate</button>
-        <button class="p-opt ${as} ${lk}" onclick="setGPred('${match.id}','away')">Gana<br>${match.a}</button>
+        <button class="p-opt${pred.type==='home'?' ph':''} ${locked?'lk':''}" onclick="setGPred('${match.id}','home')">Gana<br>${match.h}</button>
+        <button class="p-opt${pred.type==='draw'?' pd':''} ${locked?'lk':''}" onclick="setGPred('${match.id}','draw')">Empate</button>
+        <button class="p-opt${pred.type==='away'?' pa':''} ${locked?'lk':''}" onclick="setGPred('${match.id}','away')">Gana<br>${match.a}</button>
       </div>
     </div>`;
-  });
-  document.getElementById('groups-list').innerHTML=html;
+  }).join('');
 
   const total=Object.keys(preds).length;
   document.getElementById('groups-save-note').textContent=`${total} / 48 predicciones`;
   if(locked){
-    document.getElementById('groups-save-bar').innerHTML=`<span class="sticky-note">✅ Predicción enviada y bloqueada</span><span class="badge b-green">Aprobada</span>`;
+    document.getElementById('groups-save-bar').innerHTML=`<span class="sticky-note">✅ Predicción bloqueada y aprobada</span><span class="badge b-green">Aprobada</span>`;
   }
 }
 
 function setGroup(g){ currentGroup=g; renderGroups(); }
 
-function setGPred(matchId, type){
+async function setGPred(matchId,type){
   const m=me(); if(!m||m.approved) return;
-  if(!m.gpreds) m.gpreds={};
-  const ex=m.gpreds[matchId];
-  if(ex&&ex.type===type) delete m.gpreds[matchId];
-  else m.gpreds[matchId]={type};
-  save(); renderGroups();
+  const preds=m.gpreds||{};
+  const ex=preds[matchId];
+  if(ex&&ex.type===type) delete preds[matchId];
+  else preds[matchId]={type};
+  m.gpreds=preds;
+  // Update local immediately for responsiveness, then sync
+  try{ await window._db.updatePlayer(m.id,{gpreds:preds}); }
+  catch(e){ toast('Error al guardar'); }
+  renderGroups();
 }
 
-function saveGroupPreds(){
+async function saveGroupPreds(){
   const m=me(); if(!m) return;
   const cnt=Object.keys(m.gpreds||{}).length;
   if(cnt<1){ toast('Haz al menos una predicción'); return; }
-  save();
-  toast('✅ Predicciones guardadas ('+cnt+'/48)');
-  // Show share prompt
-  setTimeout(()=>showShareSummary(), 800);
+  try{
+    await window._db.savePlayer(m);
+    toast(`✅ Guardado (${cnt}/48 predicciones)`);
+    setTimeout(()=>shareSummary(),800);
+  } catch(e){ toast('Error al guardar'); }
 }
 
-function showShareSummary(){
+function shareSummary(){
   const m=me(); if(!m) return;
   const preds=m.gpreds||{};
-  const groups=['A','B','C','D','E','F','G','H'];
-  let txt=`🏆 POLLA MUNDIAL 2026 — pem.golf\n`;
-  txt+=`👤 ${m.name} (${m.email})\n`;
-  txt+=`📅 ${new Date().toLocaleDateString('es-ES')}\n\n`;
-  txt+=`⚽ FASE DE GRUPOS\n${'─'.repeat(30)}\n`;
-  groups.forEach(g=>{
+  let txt=`🏆 POLLA MUNDIAL 2026 — pem.golf\n👤 ${m.name} · ${m.email}\n📅 ${new Date().toLocaleDateString('es-ES')}\n\n⚽ FASE DE GRUPOS\n${'─'.repeat(32)}\n`;
+  ['A','B','C','D','E','F','G','H'].forEach(g=>{
     txt+=`\nGRUPO ${g}:\n`;
     MATCHES.filter(mx=>mx.g===g).forEach(mx=>{
       const p=preds[mx.id];
-      const res=p?( p.type==='home'?`${mx.h} gana`:p.type==='draw'?'Empate':`${mx.a} gana` ):'Sin predicción';
-      txt+=`  ${mx.hf} ${mx.h} vs ${mx.a} ${mx.af} → ${res}\n`;
+      const res=p?(p.type==='home'?`${mx.h} gana`:p.type==='draw'?'Empate':`${mx.a} gana`):'—';
+      txt+=`  ${mx.hf} ${mx.h} vs ${mx.a} ${mx.af}: ${res}\n`;
     });
   });
-  txt+=`\n${'─'.repeat(30)}\n`;
-  txt+=`Total predicciones: ${Object.keys(preds).length}/48\n`;
-  txt+=`Estado: Pendiente de aprobación\n`;
-
-  if(navigator.share){
-    navigator.share({ title:'Mi Polla Mundial 2026', text:txt }).catch(()=>copyToClipboard(txt));
-  } else {
-    copyToClipboard(txt);
-  }
+  txt+=`\nTotal: ${Object.keys(preds).length}/48 · Estado: ${m.approved?'✅ Aprobada':'⏳ Pendiente'}\n`;
+  if(navigator.share) navigator.share({title:'Mi Polla Mundial 2026',text:txt}).catch(()=>copyText(txt));
+  else copyText(txt);
 }
 
-function copyToClipboard(txt){
-  if(navigator.clipboard){ navigator.clipboard.writeText(txt).then(()=>toast('📋 Resumen copiado — pégalo en un correo o WhatsApp!')); }
-  else{ const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); toast('📋 Resumen copiado'); }
+function copyText(txt){
+  if(navigator.clipboard) navigator.clipboard.writeText(txt).then(()=>toast('📋 Resumen copiado — pégalo en un correo o WhatsApp'));
+  else{ const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);toast('📋 Resumen copiado'); }
 }
 
-/* ===================================================
+/* ============================================================
    KNOCKOUT
-   =================================================== */
+   ============================================================ */
 function renderKnockout(){
-  if(!S.koUnlocked||!me()?.approved){
-    document.getElementById('ko-locked-view').style.display='block';
-    document.getElementById('ko-open-view').style.display='none';
-    if(me()?.approved && !S.koUnlocked) document.querySelector('#ko-locked-view .ko-lock-sub').textContent='Las predicciones de eliminatorias se desbloquean una vez que finalice la fase de grupos.';
-    return;
-  }
-  document.getElementById('ko-locked-view').style.display='none';
-  document.getElementById('ko-open-view').style.display='block';
-  renderKOContent();
+  const m=me();
+  const unlocked=settings.koUnlocked && m?.approved;
+  document.getElementById('ko-locked-view').style.display=unlocked?'none':'block';
+  document.getElementById('ko-open-view').style.display=unlocked?'block':'none';
+  if(unlocked) renderKOContent();
 }
 
 function renderKOContent(){
   const m=me(); if(!m) return;
   const preds=m.kopreds||{};
-  const teams=S.koTeams||[];
+  const teams=(settings.koTeams||[]);
   let html='';
-
   KO_ROUNDS.forEach(round=>{
-    const pts=S.pts[round.pts_key]||0;
-    let roundTeams=teams;
-    if(round.id==='r16') roundTeams=preds['r32']||teams;
-    if(round.id==='qf')  roundTeams=preds['r16']||preds['r32']||teams;
-    if(round.id==='sf')  roundTeams=preds['qf']||preds['r16']||teams;
-    if(round.id==='fin') roundTeams=preds['sf']||preds['qf']||teams;
-    if(round.id==='champ') roundTeams=preds['fin']||preds['sf']||teams;
-
-    // Flatten teams to objects
-    const teamList = flatTeams(roundTeams);
-    if(!teamList.length && teams.length===0){
+    const pts=settings.pts?.[round.pts_key]||0;
+    let available=teams;
+    if(round.id!=='r32'){
+      // For later rounds, use previous round's picks as candidates
+      const prev=KO_ROUNDS[KO_ROUNDS.indexOf(round)-1];
+      const prevSel=preds[prev?.id]||[];
+      if(prevSel.length>0) available=prevSel;
+    }
+    if(!available.length){
       html+=`<div class="ko-section">
-        <div class="ko-section-title">
-          <span class="ko-section-name">${round.name}</span>
-          <span class="ko-pts-lbl">+${pts} pts</span>
-        </div>
-        <div style="font-size:13px;color:var(--muted);padding:10px 0">El admin aún no ha configurado los equipos clasificados.</div>
+        <div class="ko-section-title"><span class="ko-section-name">${round.name}</span><span class="ko-pts-lbl">+${pts} pts</span></div>
+        <div style="font-size:13px;color:var(--muted);padding:8px 2px">El admin aún no ha configurado los ${round.id==='r32'?'32 equipos clasificados':'equipos de esta ronda'}.</div>
       </div>`;
       return;
     }
-
     const sel=preds[round.id]||[];
-    const selIds=Array.isArray(sel)?sel.map(t=>typeof t==='object'?t.id:t):[];
-
     html+=`<div class="ko-section">
-      <div class="ko-section-title">
-        <span class="ko-section-name">${round.name}</span>
-        <span class="ko-pts-lbl">+${pts} pts cada uno</span>
-      </div>
-      <div class="team-grid" id="ko-grid-${round.id}">`;
-
-    teamList.forEach(t=>{
-      const isSel=selIds.includes(t.id);
-      const cls=round.id==='champ'&&isSel?'sel-champ':round.id==='fin'&&isSel?'sel-final':isSel?'sel':'';
-      html+=`<div class="team-opt ${cls}" onclick="toggleKOPick('${round.id}','${esc(t.id)}',${round.slots})">
-        <span class="team-opt-flag">${t.flag}</span>
+      <div class="ko-section-title"><span class="ko-section-name">${round.name}</span><span class="ko-pts-lbl">+${pts} pts c/u</span></div>
+      <div class="team-grid">`;
+    available.forEach(t=>{
+      const isSel=sel.some(s=>s.id===t.id);
+      const cls=round.id==='champ'&&isSel?'sel-champ':round.id==='fin'&&isSel?'sel-fin':isSel?'sel':'';
+      html+=`<div class="team-opt ${cls}" onclick="toggleKOPick('${round.id}','${t.id}',${round.slots})">
+        <span class="team-opt-flag">${t.flag||'🏳️'}</span>
         <span class="team-opt-name">${t.name}</span>
       </div>`;
     });
     html+=`</div></div>`;
   });
-
   document.getElementById('ko-content').innerHTML=html;
-  const total=KO_ROUNDS.reduce((a,r)=>{const p=m.kopreds[r.id]||[]; return a+(Array.isArray(p)?p.length:0);},0);
-  document.getElementById('ko-save-note').textContent=`${total} selecciones`;
+  const total=KO_ROUNDS.reduce((a,r)=>{const s=m.kopreds?.[r.id]||[];return a+s.length;},0);
+  document.getElementById('ko-save-note').textContent=`${total} selecciones guardadas`;
 }
 
-function flatTeams(arr){
-  if(!arr||!arr.length) return [];
-  if(typeof arr[0]==='object') return arr;
-  return arr.map((name,i)=>({id:'t'+i,name,flag:'🏳️'}));
-}
-
-function toggleKOPick(roundId, teamId, maxSlots){
+async function toggleKOPick(roundId,teamId,maxSlots){
   const m=me(); if(!m) return;
-  if(!m.kopreds) m.kopreds={};
-  let sel=m.kopreds[roundId]||[];
-  if(!Array.isArray(sel)) sel=[];
-  const idx=sel.findIndex(t=>(typeof t==='object'?t.id:t)===teamId);
+  const preds=m.kopreds||{};
+  let sel=preds[roundId]||[];
+  const idx=sel.findIndex(t=>t.id===teamId);
   if(idx>=0){ sel.splice(idx,1); }
-  else {
-    if(sel.length>=maxSlots){ sel.shift(); } // replace oldest if at max
-    const team=flatTeams(S.koTeams||[]).find(t=>t.id===teamId)||{id:teamId,name:teamId,flag:'🏳️'};
-    sel.push(team);
+  else{
+    if(sel.length>=maxSlots) sel.shift();
+    const team=(settings.koTeams||[]).find(t=>t.id===teamId)||{id:teamId,name:teamId,flag:'🏳️'};
+    // Also check previous round picks
+    if(roundId!=='r32'){
+      const prev=KO_ROUNDS[KO_ROUNDS.findIndex(r=>r.id===roundId)-1];
+      const prevSel=preds[prev?.id]||[];
+      const fromPrev=prevSel.find(t=>t.id===teamId);
+      if(fromPrev) sel.push(fromPrev); else sel.push(team);
+    } else { sel.push(team); }
   }
-  m.kopreds[roundId]=sel;
-  save(); renderKOContent();
+  preds[roundId]=sel;
+  m.kopreds=preds;
+  try{ await window._db.updatePlayer(m.id,{kopreds:preds}); }
+  catch(e){ toast('Error al guardar'); }
+  renderKOContent();
 }
 
-function saveKOPreds(){
-  save(); toast('✅ Predicciones de eliminatorias guardadas');
-  setTimeout(()=>{
-    const m=me(); if(!m) return;
-    let txt=`🏆 POLLA MUNDIAL 2026 — pem.golf\n👤 ${m.name}\n\n⚔️ ELIMINATORIAS\n${'─'.repeat(30)}\n`;
-    KO_ROUNDS.forEach(r=>{
-      const sel=m.kopreds[r.id]||[];
-      const names=Array.isArray(sel)?sel.map(t=>typeof t==='object'?t.name:t).join(', '):'—';
-      txt+=`${r.name}: ${names}\n`;
-    });
-    if(navigator.share) navigator.share({title:'Mis predicciones eliminatorias',text:txt}).catch(()=>copyToClipboard(txt));
-    else copyToClipboard(txt);
-  },800);
+async function saveKOPreds(){
+  const m=me(); if(!m) return;
+  try{
+    await window._db.savePlayer(m);
+    toast('✅ Predicciones de eliminatorias guardadas');
+    setTimeout(()=>{
+      const preds=m.kopreds||{};
+      let txt=`🏆 POLLA MUNDIAL 2026 — pem.golf\n👤 ${m.name}\n\n⚔️ ELIMINATORIAS\n${'─'.repeat(30)}\n`;
+      KO_ROUNDS.forEach(r=>{const sel=preds[r.id]||[];txt+=`${r.name}: ${sel.map(t=>t.name).join(', ')||'—'}\n`;});
+      if(navigator.share) navigator.share({title:'Mis predicciones eliminatorias',text:txt}).catch(()=>copyText(txt));
+      else copyText(txt);
+    },800);
+  } catch(e){ toast('Error al guardar'); }
 }
 
-/* ===================================================
+/* ============================================================
    RANKING
-   =================================================== */
+   ============================================================ */
 function calcScore(player){
-  let pts=0,correct=0,exact=0;
-  const preds=player.gpreds||{};
-  MATCHES.forEach(m=>{
-    const res=S.results[m.id];
-    const pred=preds[m.id];
-    if(!res||!pred) return;
+  let pts=0,correct=0;
+  const p=settings.pts||{};
+  (player.gpreds?Object.entries(player.gpreds):[]).forEach(([mid,pred])=>{
+    const res=settings.results?.[mid];
+    if(!res) return;
     const actual=res.home>res.away?'home':res.away>res.home?'away':'draw';
-    if(pred.type===actual){
-      pts+=(S.pts.result||1); correct++;
-      if(pred.hs!==undefined&&pred.as!==undefined&&pred.hs===res.home&&pred.as===res.away){
-        pts+=(S.pts.exact||3); exact++;
-      }
-    }
+    if(pred.type===actual){ pts+=(p.result||1); correct++; }
   });
-  // KO points
-  const kp=player.kopreds||{};
   KO_ROUNDS.forEach(r=>{
-    const sel=kp[r.id]||[];
-    const actual=S.koResults?.[r.id]||[];
-    if(!Array.isArray(sel)||!actual.length) return;
-    sel.forEach(t=>{
-      const tid=typeof t==='object'?t.id:t;
-      const found=actual.find(a=>(typeof a==='object'?a.id:a)===tid);
-      if(found) pts+=(S.pts[r.pts_key]||0);
-    });
+    const sel=player.kopreds?.[r.id]||[];
+    const actual=settings.koResults?.[r.id]||[];
+    sel.forEach(t=>{ if(actual.some(a=>a.id===t.id)) pts+=(p[r.pts_key]||0); });
   });
-  return{pts,correct,exact};
+  return{pts,correct};
 }
 
 function renderRanking(){
-  const approved=S.players.filter(p=>p.approved);
-  const scores=approved.map((p,i)=>({...p,idx:S.players.indexOf(p),...calcScore(p)})).sort((a,b)=>b.pts-a.pts||b.correct-a.correct);
-  const content=document.getElementById('ranking-content');
+  const approved=players.filter(p=>p.approved);
+  const scores=approved.map((p,i)=>({...p,idx:players.indexOf(p),...calcScore(p)})).sort((a,b)=>b.pts-a.pts||b.correct-a.correct);
+  const el=document.getElementById('ranking-content');
   if(!scores.length){
-    content.innerHTML=`<div class="empty-state"><div class="empty-icon">🏆</div><div class="empty-title">Sin clasificación aún</div><div class="empty-sub">La clasificación aparece una vez que el administrador apruebe las predicciones.</div></div>`;
+    el.innerHTML=`<div class="empty-state"><div class="empty-icon">🏆</div><div class="empty-title">Sin clasificación aún</div><div class="empty-sub">La clasificación aparece cuando el administrador apruebe predicciones.</div></div>`;
     return;
   }
   const medals=['🥇','🥈','🥉'];
   const top3=scores.slice(0,3);
   const order=top3.length>=3?[1,0,2]:top3.length===2?[1,0]:[0];
-  let podHtml='<div class="lb-podium">';
+  let html='<div class="lb-podium">';
   order.forEach(oi=>{
-    const p=top3[oi];
-    if(!p){podHtml+='<div></div>';return;}
+    const p=top3[oi]; if(!p){html+='<div></div>';return;}
     const isF=oi===0;
-    podHtml+=`<div class="pod${isF?' p1':''}">
+    html+=`<div class="pod${isF?' p1':''}">
       <div class="pod-medal">${medals[oi]}</div>
       <div class="pod-av" style="background:${col(p.idx)}">${ini(p.name)}</div>
       <div class="pod-name">${p.name}</div>
@@ -878,16 +934,14 @@ function renderRanking(){
       <div class="pod-sub">${p.correct} aciertos</div>
     </div>`;
   });
-  podHtml+='</div>';
-
-  let listHtml='<div class="lb-list">';
+  html+='</div><div class="lb-list">';
   scores.forEach((p,i)=>{
-    const isMe=p.id===S.myId;
-    listHtml+=`<div class="lb-row${isMe?' me':''}">
+    const isMe=p.id===myId;
+    html+=`<div class="lb-row${isMe?' me-row':''}">
       <div class="lb-rank">${medals[i]||i+1}</div>
       <div class="lb-player">
         <div class="lb-av" style="background:${col(p.idx)}">${ini(p.name)}</div>
-        <div class="lb-pname">${p.name}${isMe?' (tú)':''}</div>
+        <div class="lb-pname">${p.name}${isMe?' 👈':''}</div>
       </div>
       <div class="lb-right">
         <div class="lb-pts">${p.pts} pts</div>
@@ -895,74 +949,62 @@ function renderRanking(){
       </div>
     </div>`;
   });
-  listHtml+='</div>';
-
-  content.innerHTML=podHtml+listHtml;
+  el.innerHTML=html+'</div>';
 }
 
-/* ===================================================
+/* ============================================================
    PROFILE
-   =================================================== */
+   ============================================================ */
 function renderProfile(){
-  const content=document.getElementById('profile-content');
   const m=me();
+  const el=document.getElementById('profile-content');
   if(!m){
-    content.innerHTML=`<div class="empty-state"><div class="empty-icon">👤</div><div class="empty-title">No registrado</div><div class="empty-sub">Ve a la pestaña de Grupos para registrarte.</div></div>`;
+    el.innerHTML=`<div class="empty-state"><div class="empty-icon">👤</div><div class="empty-title">No registrado</div><div class="empty-sub">Ve a la pestaña Grupos para registrarte.</div></div>`;
     return;
   }
-  const idx=S.players.indexOf(m);
+  const idx=players.indexOf(m);
   const sc=calcScore(m);
   const gpCount=Object.keys(m.gpreds||{}).length;
-  const statusHtml=m.approved
-    ? `<span class="prof-status b-green">✅ Aprobado${m.paid?' · 💲 Pagado':''}</span>`
-    : `<span class="prof-status b-gold">⏳ Pendiente de aprobación</span>`;
+  const statusHtml=m.paid
+    ? `<span class="badge b-green">✅ Aprobado · 💲 Pagado</span>`
+    : m.approved
+      ? `<span class="badge b-green">✅ Aprobado</span>`
+      : `<span class="badge b-gold">⏳ Pendiente de aprobación</span>`;
 
-  content.innerHTML=`
-    <div class="card" style="padding:20px 16px 16px">
-      <div class="prof-top">
-        <div class="prof-av" style="background:${col(idx)}">${ini(m.name)}</div>
-        <div class="prof-name">${m.name}</div>
-        <div class="prof-email">${m.email}</div>
-        ${statusHtml}
-      </div>
-      <div class="stat-grid">
-        <div class="stat-box"><div class="stat-num">${sc.pts}</div><div class="stat-lbl">Puntos</div></div>
-        <div class="stat-box"><div class="stat-num">${sc.correct}</div><div class="stat-lbl">Aciertos</div></div>
-        <div class="stat-box"><div class="stat-num">${gpCount}/48</div><div class="stat-lbl">Predichos</div></div>
-      </div>
+  el.innerHTML=`
+    <div class="card" style="padding:20px 16px 16px;text-align:center;margin-bottom:10px">
+      <div class="prof-av" style="background:${col(idx)}">${ini(m.name)}</div>
+      <div class="prof-name">${m.name}</div>
+      <div class="prof-email">${m.email}</div>
+      <div style="margin-top:8px">${statusHtml}</div>
     </div>
-    <button class="share-btn" onclick="showShareSummary()">📤 Compartir mis predicciones de grupos</button>
-    ${S.koUnlocked&&m.approved?`<button class="share-btn" onclick="saveKOPreds()">📤 Compartir predicciones eliminatorias</button>`:''}
-    <button class="share-btn secondary" onclick="logOut()">Cambiar de usuario</button>
+    <div class="stat-grid">
+      <div class="stat-box"><div class="stat-num">${sc.pts}</div><div class="stat-lbl">Puntos</div></div>
+      <div class="stat-box"><div class="stat-num">${sc.correct}</div><div class="stat-lbl">Aciertos</div></div>
+      <div class="stat-box"><div class="stat-num">${gpCount}/48</div><div class="stat-lbl">Predichos</div></div>
+    </div>
+    <button class="share-btn" onclick="shareSummary()">📤 Compartir predicciones de grupos</button>
+    ${settings.koUnlocked&&m.approved?`<button class="share-btn" onclick="saveKOPreds()">📤 Compartir predicciones eliminatorias</button>`:''}
+    <button class="share-btn sec" onclick="logOut()">🔄 Cambiar de usuario</button>
   `;
 }
 
 function logOut(){
-  if(!confirm('¿Cambiar de usuario? Tus predicciones se guardan automáticamente.')) return;
-  S.myId=null; save();
+  if(!confirm('¿Cambiar de usuario?')) return;
+  myId=null; localStorage.removeItem(MY_ID_KEY);
   document.getElementById('reg-view').style.display='block';
   document.getElementById('pred-view').style.display='none';
-  showTab('groups', document.querySelector('.tab-btn'));
-  toast('Sesión cerrada');
+  showTab('groups',document.querySelector('.tab-btn'));
 }
 
-/* ===================================================
+/* ============================================================
    PIN & ADMIN
-   =================================================== */
-function openPin(){
-  pinBuf=''; document.getElementById('pin-err').textContent=''; updateDots();
-  document.getElementById('pin-overlay').classList.add('open');
-}
+   ============================================================ */
+function openPin(){ pinBuf=''; document.getElementById('pin-err').textContent=''; updateDots(); document.getElementById('pin-overlay').classList.add('open'); }
 function closePin(){ document.getElementById('pin-overlay').classList.remove('open'); }
 function pk(k){
-  if(pinBuf.length>=4) return;
-  pinBuf+=k; updateDots();
-  if(pinBuf.length===4){
-    setTimeout(()=>{
-      if(pinBuf===ADMIN_PIN){ closePin(); openAdmin(); }
-      else{ document.getElementById('pin-err').textContent='PIN incorrecto'; pinBuf=''; updateDots(); }
-    },200);
-  }
+  if(pinBuf.length>=4) return; pinBuf+=k; updateDots();
+  if(pinBuf.length===4) setTimeout(()=>{ if(pinBuf===ADMIN_PIN){ closePin(); openAdmin(); } else{ document.getElementById('pin-err').textContent='PIN incorrecto'; pinBuf=''; updateDots(); } },200);
 }
 function pdel(){ pinBuf=pinBuf.slice(0,-1); updateDots(); }
 function updateDots(){ for(let i=0;i<4;i++) document.getElementById('pd'+i).className='pin-dot'+(i<pinBuf.length?' filled':''); }
@@ -971,49 +1013,40 @@ function openAdmin(){
   isAdmin=true;
   document.getElementById('admin-pill').classList.add('on');
   document.getElementById('admin-overlay').classList.add('open');
-  renderAdminPlayers();
-  renderAdminResults();
-  syncAdminSettings();
+  renderAdminPlayers(); renderAdminResults(); renderKOTeamsAdmin(); syncAdminSettings();
 }
 function closeAdmin(){
   document.getElementById('admin-overlay').classList.remove('open');
   document.getElementById('admin-pill').classList.remove('on');
   isAdmin=false;
 }
-
-function adminTab(tab, el){
+function adminTab(tab,el){
   document.querySelectorAll('.admin-tab').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.admin-screen').forEach(s=>s.classList.remove('active'));
   el.classList.add('active');
   document.getElementById('a-'+tab).classList.add('active');
-  currentAdminTab=tab;
 }
 
-/* ===================================================
-   ADMIN — PLAYERS
-   =================================================== */
+/* ADMIN — PLAYERS */
 function renderAdminPlayers(){
-  const list=document.getElementById('a-player-list');
-  if(!S.players.length){
-    list.innerHTML='<div style="text-align:center;padding:30px;color:rgba(255,255,255,.3);font-size:13px">Sin jugadores aún</div>';
-    return;
-  }
-  list.innerHTML=S.players.map((p,i)=>{
+  const el=document.getElementById('a-player-list');
+  if(!players.length){ el.innerHTML='<div style="text-align:center;padding:30px;color:rgba(255,255,255,.3);font-size:13px">Sin jugadores aún</div>'; return; }
+  el.innerHTML=players.map((p,i)=>{
     const gpCount=Object.keys(p.gpreds||{}).length;
-    const statusCls=p.paid?'as-paid':p.approved?'as-approved':'as-pending';
-    const statusTxt=p.paid?'💲 Pagado':p.approved?'✅ Aprobado':'⏳ Pendiente';
+    const st=p.paid?'as-paid':p.approved?'as-approved':'as-pending';
+    const stTxt=p.paid?'💲 Pagado':p.approved?'✅ Aprobado':'⏳ Pendiente';
     return `<div class="a-row">
       <div class="a-av" style="background:${col(i)}">${ini(p.name)}</div>
-      <div style="flex:1;overflow:hidden">
+      <div class="a-info">
         <div class="a-name">${p.name}</div>
         <div class="a-email">${p.email}</div>
-        <div class="a-preds">${gpCount}/48 predicciones grupos</div>
+        <div class="a-preds">${gpCount}/48 grupos · ${Object.keys(p.kopreds||{}).length} rondas KO</div>
       </div>
-      <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end">
-        <span class="a-status ${statusCls}">${statusTxt}</span>
-        <div class="a-actions">
+      <div class="a-actions">
+        <span class="a-status ${st}">${stTxt}</span>
+        <div class="a-btns-row">
           ${!p.approved?`<button class="a-btn a-btn-approve" onclick="approvePlayer('${p.id}')">✓ Aprobar</button>`:''}
-          ${p.approved&&!p.paid?`<button class="a-btn a-btn-paid" onclick="markPaid('${p.id}')">💲 Pagado</button>`:''}
+          ${p.approved?`<button class="a-btn a-btn-paid" onclick="togglePaid('${p.id}')">${p.paid?'↩ Pago':'💲 Pago'}</button>`:''}
           <button class="a-btn a-btn-edit" onclick="openEditFor('${p.id}')">✏️</button>
           <button class="a-btn a-btn-del" onclick="deletePlayer('${p.id}')">✕</button>
         </div>
@@ -1022,157 +1055,145 @@ function renderAdminPlayers(){
   }).join('');
 }
 
-function approvePlayer(id){
-  const p=S.players.find(x=>x.id===id); if(!p) return;
-  p.approved=true; save(); renderAdminPlayers();
-  toast('✅ '+p.name+' aprobado');
+async function approvePlayer(id){
+  try{ await window._db.updatePlayer(id,{approved:true}); toast('✅ Jugador aprobado'); }
+  catch(e){ toast('Error'); }
 }
-function markPaid(id){
-  const p=S.players.find(x=>x.id===id); if(!p) return;
-  p.paid=!p.paid; save(); renderAdminPlayers();
-  toast(p.paid?'💲 Marcado como pagado':'Pago retirado');
+async function togglePaid(id){
+  const p=players.find(x=>x.id===id); if(!p) return;
+  try{ await window._db.updatePlayer(id,{paid:!p.paid}); toast(p.paid?'Pago retirado':'💲 Marcado como pagado'); }
+  catch(e){ toast('Error'); }
 }
-function deletePlayer(id){
-  const p=S.players.find(x=>x.id===id); if(!p) return;
+async function deletePlayer(id){
+  const p=players.find(x=>x.id===id); if(!p) return;
   if(!confirm('¿Eliminar a '+p.name+'?')) return;
-  S.players=S.players.filter(x=>x.id!==id);
-  if(S.myId===id) S.myId=null;
-  save(); renderAdminPlayers();
-  toast('Jugador eliminado');
+  try{ await window._db.deletePlayer(id); if(myId===id){myId=null;localStorage.removeItem(MY_ID_KEY);} toast('Jugador eliminado'); }
+  catch(e){ toast('Error'); }
 }
 
-/* ===================================================
-   ADMIN — EDIT PREDICTIONS MODAL
-   =================================================== */
-function openEditFor(playerId){
-  const sel=document.getElementById('edit-sel');
-  sel.innerHTML=S.players.map(p=>`<option value="${p.id}"${p.id===playerId?' selected':''}>${p.name}</option>`).join('');
+/* ADMIN — EDIT PREDS */
+function openEditFor(id){
+  const el=document.getElementById('edit-sel');
+  el.innerHTML=players.map(p=>`<option value="${p.id}"${p.id===id?' selected':''}>${p.name}</option>`).join('');
   document.getElementById('edit-modal').classList.add('open');
   loadEditPlayer();
 }
-function closeEditModal(e){
-  if(e&&e.target!==document.getElementById('edit-modal')) return;
-  saveAndCloseEdit();
-}
-function saveAndCloseEdit(){
-  save();
-  document.getElementById('edit-modal').classList.remove('open');
-  renderAdminPlayers();
-  renderGroups();
-}
+function closeEditModal(e){ if(e&&e.target!==document.getElementById('edit-modal')) return; saveAndCloseEdit(); }
+function saveAndCloseEdit(){ document.getElementById('edit-modal').classList.remove('open'); renderAdminPlayers(); }
+
 function loadEditPlayer(){
   const id=document.getElementById('edit-sel').value;
-  const player=S.players.find(p=>p.id===id);
+  const player=players.find(p=>p.id===id);
   const container=document.getElementById('edit-match-list');
   if(!player){ container.innerHTML=''; return; }
-  if(!player.gpreds) player.gpreds={};
-  const preds=player.gpreds;
-  const groups=['A','B','C','D','E','F','G','H'];
-  let html='';
-  groups.forEach(g=>{
-    html+=`<div style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:2px;color:var(--ink2);padding:12px 0 6px">Grupo ${g}</div>`;
-    MATCHES.filter(m=>m.g===g).forEach(m=>{
+  const preds=player.gpreds||{};
+  container.innerHTML=['A','B','C','D','E','F','G','H'].map(g=>`
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:2px;color:var(--ink2);padding:12px 0 4px">Grupo ${g}</div>
+    ${MATCHES.filter(m=>m.g===g).map(m=>{
       const pred=preds[m.id]||{};
-      const hs=pred.type==='home'?'ph':'';
-      const ds=pred.type==='draw'?'pd':'';
-      const as=pred.type==='away'?'pa':'';
-      html+=`<div class="modal-match-row">
-        <div>
-          <div class="modal-match-info">${m.hf} ${m.h} vs ${m.a} ${m.af}</div>
-          <div class="modal-match-sub">${m.d}</div>
-        </div>
+      return `<div class="modal-match-row">
+        <div><div class="modal-match-info">${m.hf} ${m.h} vs ${m.a} ${m.af}</div><div class="modal-match-sub">${m.d}</div></div>
         <div class="modal-pred-btns">
-          <button class="modal-pb ${hs}" onclick="setEditPred('${id}','${m.id}','home')">L</button>
-          <button class="modal-pb ${ds}" onclick="setEditPred('${id}','${m.id}','draw')">E</button>
-          <button class="modal-pb ${as}" onclick="setEditPred('${id}','${m.id}','away')">V</button>
+          <button class="modal-pb${pred.type==='home'?' ph':''}" onclick="setEditPred('${id}','${m.id}','home')">L</button>
+          <button class="modal-pb${pred.type==='draw'?' pd':''}" onclick="setEditPred('${id}','${m.id}','draw')">E</button>
+          <button class="modal-pb${pred.type==='away'?' pa':''}" onclick="setEditPred('${id}','${m.id}','away')">V</button>
         </div>
       </div>`;
-    });
-  });
-  container.innerHTML=html;
-}
-function setEditPred(playerId,matchId,type){
-  const player=S.players.find(p=>p.id===playerId); if(!player) return;
-  if(!player.gpreds) player.gpreds={};
-  const ex=player.gpreds[matchId];
-  if(ex&&ex.type===type) delete player.gpreds[matchId];
-  else player.gpreds[matchId]={type};
-  save(); loadEditPlayer();
+    }).join('')}`
+  ).join('');
 }
 
-/* ===================================================
-   ADMIN — RESULTS
-   =================================================== */
+async function setEditPred(playerId,matchId,type){
+  const player=players.find(p=>p.id===playerId); if(!player) return;
+  const preds=player.gpreds||{};
+  const ex=preds[matchId];
+  if(ex&&ex.type===type) delete preds[matchId]; else preds[matchId]={type};
+  try{ await window._db.updatePlayer(playerId,{gpreds:preds}); loadEditPlayer(); }
+  catch(e){ toast('Error al guardar'); }
+}
+
+/* ADMIN — RESULTS */
 function renderAdminResults(){
-  const groups=['A','B','C','D','E','F','G','H'];
-  let html='';
-  groups.forEach(g=>{
-    html+=`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.35);padding:12px 14px 6px">Grupo ${g}</div>`;
-    MATCHES.filter(m=>m.g===g).forEach(m=>{
-      const res=S.results[m.id]||{};
-      html+=`<div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:6px;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,.05)">
-        <div style="font-size:11px;color:#fff;text-align:right">${m.hf} ${m.h}</div>
-        <div style="display:flex;align-items:center;gap:4px">
-          <input type="number" min="0" max="20" inputmode="numeric" value="${res.home??''}" placeholder="0" id="ar-${m.id}-h" style="width:34px;height:34px;text-align:center;font-size:16px;font-weight:700;border:1px solid rgba(255,255,255,.15);border-radius:8px;background:rgba(255,255,255,.08);color:#fff;font-family:'DM Sans',sans-serif;outline:none">
-          <span style="color:rgba(255,255,255,.3);font-size:14px">–</span>
-          <input type="number" min="0" max="20" inputmode="numeric" value="${res.away??''}" placeholder="0" id="ar-${m.id}-a" style="width:34px;height:34px;text-align:center;font-size:16px;font-weight:700;border:1px solid rgba(255,255,255,.15);border-radius:8px;background:rgba(255,255,255,.08);color:#fff;font-family:'DM Sans',sans-serif;outline:none">
-        </div>
-        <div style="font-size:11px;color:#fff">${m.a} ${m.af}</div>
-      </div>`;
-    });
-  });
-  html+=`<div style="padding:14px"><button class="a-save-btn" onclick="saveAdminResults()">Guardar resultados</button></div>`;
-  document.getElementById('a-results-list').innerHTML=html;
+  document.getElementById('a-results-list').innerHTML=
+    ['A','B','C','D','E','F','G','H'].map(g=>`
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.35);padding:12px 14px 6px">Grupo ${g}</div>
+      ${MATCHES.filter(m=>m.g===g).map(m=>{
+        const res=(settings.results||{})[m.id]||{};
+        return `<div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:6px;padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.04)">
+          <div style="font-size:11px;color:#fff;text-align:right">${m.hf} ${m.h}</div>
+          <div style="display:flex;align-items:center;gap:4px">
+            <input type="number" min="0" max="20" inputmode="numeric" value="${res.home??''}" placeholder="0" id="ar-${m.id}-h" style="width:34px;height:34px;text-align:center;font-size:16px;font-weight:700;border:1px solid rgba(255,255,255,.15);border-radius:8px;background:rgba(255,255,255,.08);color:#fff;font-family:'DM Sans',sans-serif;outline:none">
+            <span style="color:rgba(255,255,255,.3)">–</span>
+            <input type="number" min="0" max="20" inputmode="numeric" value="${res.away??''}" placeholder="0" id="ar-${m.id}-a" style="width:34px;height:34px;text-align:center;font-size:16px;font-weight:700;border:1px solid rgba(255,255,255,.15);border-radius:8px;background:rgba(255,255,255,.08);color:#fff;font-family:'DM Sans',sans-serif;outline:none">
+          </div>
+          <div style="font-size:11px;color:#fff">${m.a} ${m.af}</div>
+        </div>`;
+      }).join('')}`
+    ).join('');
 }
 
-function saveAdminResults(){
+async function saveAdminResults(){
+  const results={};
   MATCHES.forEach(m=>{
     const h=document.getElementById(`ar-${m.id}-h`);
     const a=document.getElementById(`ar-${m.id}-a`);
-    if(h&&a&&h.value!==''&&a.value!=='') S.results[m.id]={home:parseInt(h.value),away:parseInt(a.value)};
+    if(h&&a&&h.value!==''&&a.value!=='') results[m.id]={home:parseInt(h.value),away:parseInt(a.value)};
   });
-  save(); toast('✅ Resultados guardados');
+  try{ await window._db.saveSettings({results}); toast('✅ Resultados guardados'); }
+  catch(e){ toast('Error al guardar'); }
 }
 
-/* ===================================================
-   ADMIN — SETTINGS
-   =================================================== */
+/* ADMIN — KO TEAMS */
+function renderKOTeamsAdmin(){
+  const teams=settings.koTeams||[];
+  let html='';
+  for(let i=0;i<32;i++){
+    const t=teams[i]||{id:'t'+i,name:'',flag:''};
+    html+=`<div class="ko-team-input">
+      <span class="ko-team-num">${i+1}</span>
+      <input class="ko-team-flag" type="text" id="ko-flag-${i}" value="${t.flag||''}" placeholder="🏳️" maxlength="4">
+      <input class="ko-team-name" type="text" id="ko-name-${i}" value="${t.name||''}" placeholder="País...">
+    </div>`;
+  }
+  document.getElementById('ko-teams-grid').innerHTML=html;
+}
+
+async function saveKOTeams(){
+  const teams=[];
+  for(let i=0;i<32;i++){
+    const flag=document.getElementById(`ko-flag-${i}`)?.value.trim()||'🏳️';
+    const name=document.getElementById(`ko-name-${i}`)?.value.trim();
+    if(name) teams.push({id:'t'+i,name,flag});
+  }
+  try{ await window._db.saveSettings({koTeams:teams}); toast(`✅ ${teams.length} equipos guardados`); }
+  catch(e){ toast('Error al guardar'); }
+}
+
+async function toggleKO(){
+  const unlocked=!settings.koUnlocked;
+  try{
+    await window._db.saveSettings({koUnlocked:unlocked});
+    toast(unlocked?'🔓 Eliminatorias desbloqueadas para todos':'🔒 Eliminatorias bloqueadas');
+  } catch(e){ toast('Error'); }
+}
+
+/* ADMIN — SETTINGS */
 function syncAdminSettings(){
-  ['result','exact','r32','r16','qf','sf','fin','champ'].forEach(k=>{
-    const el=document.getElementById('pts-'+k);
-    if(el) el.value=S.pts[k]||0;
-  });
+  const p=settings.pts||{};
+  ['result','exact','r32','r16','qf','sf','fin','champ'].forEach(k=>{ const el=document.getElementById('pts-'+k); if(el) el.value=p[k]??0; });
   const btn=document.getElementById('ko-unlock-btn');
   if(btn){
-    btn.textContent=S.koUnlocked?'🔒 Bloquear eliminatorias':'🔓 Desbloquear eliminatorias';
-    btn.className=S.koUnlocked?'ko-unlock-btn':'ko-unlock-btn locked';
+    btn.textContent=settings.koUnlocked?'🔒 Bloquear eliminatorias':'🔓 Desbloquear eliminatorias';
+    btn.className='ko-unlock-btn '+(settings.koUnlocked?'unlocked':'locked');
   }
 }
-function saveSettings(){
-  ['result','exact','r32','r16','qf','sf','fin','champ'].forEach(k=>{
-    const el=document.getElementById('pts-'+k);
-    if(el) S.pts[k]=parseInt(el.value)||0;
-  });
-  save(); toast('✅ Configuración guardada');
-}
-function toggleKO(){
-  S.koUnlocked=!S.koUnlocked;
-  save(); syncAdminSettings();
-  toast(S.koUnlocked?'🔓 Eliminatorias desbloqueadas para todos':'🔒 Eliminatorias bloqueadas');
-}
 
-/* ===================================================
-   INIT
-   =================================================== */
-load();
-setTimeout(()=>{ document.getElementById('splash').classList.add('hide'); setTimeout(()=>document.getElementById('splash').remove(),600); },1200);
-
-// Restore session
-if(S.myId && me()){
-  showPredView();
+async function saveSettings(){
+  const pts={};
+  ['result','exact','r32','r16','qf','sf','fin','champ'].forEach(k=>{ const el=document.getElementById('pts-'+k); if(el) pts[k]=parseInt(el.value)||0; });
+  try{ await window._db.saveSettings({pts}); toast('✅ Puntuación guardada'); }
+  catch(e){ toast('Error al guardar'); }
 }
-
-renderGroups();
 </script>
 </body>
 </html>
