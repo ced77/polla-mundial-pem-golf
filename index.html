@@ -340,6 +340,43 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);overscroll-behavior:none;
 
 .paid-badge{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;background:var(--gold);color:#fff;font-size:9px;font-weight:800;border-radius:50%;margin-left:4px;flex-shrink:0;vertical-align:middle}
 
+
+/* PLAYER PIN / LOGIN */
+.player-pin-overlay{position:fixed;inset:0;background:var(--ink);z-index:450;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;opacity:0;pointer-events:none;transition:opacity .3s}
+.player-pin-overlay.open{opacity:1;pointer-events:all}
+.ppin-avatar{width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff;margin-bottom:4px}
+.ppin-name{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#fff}
+.ppin-sub{font-size:12px;color:var(--grass);letter-spacing:.5px;text-align:center;max-width:240px;line-height:1.5}
+.ppin-dots{display:flex;gap:10px}
+.ppin-dot{width:13px;height:13px;border-radius:50%;background:rgba(255,255,255,.2);transition:background .15s}
+.ppin-dot.filled{background:var(--grass)}
+.ppin-err{font-size:12px;color:#fca5a5;min-height:16px;text-align:center}
+.ppin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;width:240px}
+.ppin-key{height:58px;border-radius:14px;border:none;background:rgba(255,255,255,.1);color:#fff;font-size:22px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;transition:background .1s}
+.ppin-key:active{background:rgba(255,255,255,.25)}
+.ppin-key.del{background:rgba(239,68,68,.25);font-size:17px}
+.ppin-key.skip{background:rgba(255,255,255,.05);font-size:11px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.4);letter-spacing:.5px}
+.ppin-setup-note{font-size:11px;color:rgba(255,255,255,.4);text-align:center;max-width:220px;line-height:1.5;margin-top:-4px}
+
+/* EDIT MODAL TABS */
+.edit-tabs{display:flex;border-bottom:1px solid var(--bdr);margin-bottom:12px}
+.edit-tab{flex:1;padding:10px 8px;border:none;background:none;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+.edit-tab.active{color:var(--ink3);border-bottom-color:var(--grass)}
+.edit-section{display:none}
+.edit-section.active{display:block}
+
+/* KO bracket edit in modal */
+.ko-edit-round{margin-bottom:14px}
+.ko-edit-round-title{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:1.5px;color:var(--ink2);margin-bottom:6px;display:flex;align-items:baseline;justify-content:space-between}
+.ko-edit-pts{font-size:10px;color:var(--muted);font-family:'DM Sans',sans-serif;letter-spacing:0}
+.ko-edit-match{display:flex;flex-direction:column;gap:4px;margin-bottom:8px}
+.ko-edit-team{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;border:1.5px solid var(--bdr);background:var(--chalk);cursor:pointer;transition:all .15s}
+.ko-edit-team.winner{background:var(--grass-0);border-color:var(--grass)}
+.ko-edit-team.tbd{opacity:.35;pointer-events:none}
+.ko-edit-flag{font-size:18px;flex-shrink:0}
+.ko-edit-name{font-size:12px;font-weight:600;color:var(--txt);flex:1}
+.ko-edit-team.winner .ko-edit-name{color:var(--ink3)}
+
 /* PLAYER DETAIL MODAL */
 .pdet-back{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:350;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s}
 .pdet-back.open{opacity:1;pointer-events:all}
@@ -413,6 +450,27 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);overscroll-behavior:none;
     <button class="pin-key" onclick="pk('7')">7</button><button class="pin-key" onclick="pk('8')">8</button><button class="pin-key" onclick="pk('9')">9</button>
     <button class="pin-key cancel" onclick="closePin()">Cancelar</button><button class="pin-key" onclick="pk('0')">0</button><button class="pin-key del" onclick="pdel()">⌫</button>
   </div>
+</div>
+
+<!-- PLAYER PIN OVERLAY -->
+<div class="player-pin-overlay" id="ppin-overlay">
+  <div class="ppin-avatar" id="ppin-avatar"></div>
+  <div class="ppin-name" id="ppin-name"></div>
+  <div class="ppin-sub" id="ppin-sub">Introduce tu PIN de 4 dígitos</div>
+  <div class="ppin-dots">
+    <div class="ppin-dot" id="ppd0"></div><div class="ppin-dot" id="ppd1"></div>
+    <div class="ppin-dot" id="ppd2"></div><div class="ppin-dot" id="ppd3"></div>
+  </div>
+  <div class="ppin-err" id="ppin-err"></div>
+  <div class="ppin-pad">
+    <button class="ppin-key" onclick="ppk('1')">1</button><button class="ppin-key" onclick="ppk('2')">2</button><button class="ppin-key" onclick="ppk('3')">3</button>
+    <button class="ppin-key" onclick="ppk('4')">4</button><button class="ppin-key" onclick="ppk('5')">5</button><button class="ppin-key" onclick="ppk('6')">6</button>
+    <button class="ppin-key" onclick="ppk('7')">7</button><button class="ppin-key" onclick="ppk('8')">8</button><button class="ppin-key" onclick="ppk('9')">9</button>
+    <button class="ppin-key skip" id="ppin-skip" onclick="ppSkip()" style="display:none">Omitir</button>
+    <button class="ppin-key" onclick="ppk('0')">0</button>
+    <button class="ppin-key del" onclick="ppdel()">⌫</button>
+  </div>
+  <div class="ppin-setup-note" id="ppin-setup-note" style="display:none">Este PIN protege tu cuenta. Necesitarás usarlo cada vez que inicies sesión.</div>
 </div>
 
 <!-- ADMIN PANEL -->
@@ -499,11 +557,20 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);overscroll-behavior:none;
 <div class="modal-back" id="edit-modal" onclick="closeEditModal(event)">
   <div class="modal-sheet">
     <div class="modal-handle"></div>
-    <div class="modal-title">Editar Predicciones</div>
+    <div class="modal-title" id="edit-modal-title">Editar Predicciones</div>
     <div class="modal-body">
       <label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);display:block;margin-bottom:6px">Jugador</label>
       <select class="modal-sel" id="edit-sel" onchange="loadEditPlayer()"></select>
-      <div id="edit-match-list"></div>
+      <div class="edit-tabs">
+        <button class="edit-tab active" onclick="switchEditTab('groups',this)">⚽ Grupos</button>
+        <button class="edit-tab" onclick="switchEditTab('playoff',this)">⚔️ Eliminatorias</button>
+      </div>
+      <div id="edit-section-groups" class="edit-section active">
+        <div id="edit-match-list"></div>
+      </div>
+      <div id="edit-section-playoff" class="edit-section">
+        <div id="edit-ko-list"></div>
+      </div>
       <button class="modal-close" onclick="saveAndCloseEdit()">Guardar y cerrar</button>
     </div>
   </div>
@@ -807,6 +874,110 @@ window.addEventListener('firebase-ready', ()=>{
   },1400);
 });
 
+
+/* ============================================================
+   PLAYER PIN SYSTEM
+   ============================================================ */
+let ppinBuf = '';
+let ppinMode = ''; // 'setup' | 'login'
+let ppinPendingPlayer = null; // player object waiting for PIN confirm
+
+function hashPin(pin){ return btoa(pin.split('').reverse().join('')+'pem2026'); }
+
+function openPinSetup(player){
+  ppinBuf=''; ppinMode='setup'; ppinPendingPlayer=player;
+  const idx=players.indexOf(player);
+  const c=col(idx<0?0:idx);
+  document.getElementById('ppin-avatar').style.background=c;
+  document.getElementById('ppin-avatar').textContent=ini(player.name);
+  document.getElementById('ppin-name').textContent=player.name;
+  document.getElementById('ppin-sub').textContent='Elige un PIN de 4 dígitos para proteger tu cuenta';
+  document.getElementById('ppin-setup-note').style.display='block';
+  document.getElementById('ppin-skip').style.display='none';
+  document.getElementById('ppin-err').textContent='';
+  updatePpinDots();
+  document.getElementById('ppin-overlay').classList.add('open');
+}
+
+function openPinLogin(player){
+  ppinBuf=''; ppinMode='login'; ppinPendingPlayer=player;
+  const idx=players.indexOf(player);
+  const c=col(idx<0?0:idx);
+  document.getElementById('ppin-avatar').style.background=c;
+  document.getElementById('ppin-avatar').textContent=ini(player.name);
+  document.getElementById('ppin-name').textContent=player.name;
+  document.getElementById('ppin-sub').textContent='Introduce tu PIN para acceder';
+  document.getElementById('ppin-setup-note').style.display='none';
+  document.getElementById('ppin-skip').style.display='none';
+  document.getElementById('ppin-err').textContent='';
+  updatePpinDots();
+  document.getElementById('ppin-overlay').classList.add('open');
+}
+
+function closePpinOverlay(){
+  document.getElementById('ppin-overlay').classList.remove('open');
+  ppinBuf=''; ppinPendingPlayer=null; ppinMode='';
+}
+
+function ppk(k){
+  if(ppinBuf.length>=4) return;
+  ppinBuf+=k; updatePpinDots();
+  if(ppinBuf.length===4){
+    setTimeout(()=>{
+      if(ppinMode==='setup') confirmPinSetup();
+      else if(ppinMode==='login') confirmPinLogin();
+    },200);
+  }
+}
+function ppdel(){ ppinBuf=ppinBuf.slice(0,-1); updatePpinDots(); }
+function ppSkip(){ closePpinOverlay(); }
+function updatePpinDots(){
+  for(let i=0;i<4;i++) document.getElementById('ppd'+i).className='ppin-dot'+(i<ppinBuf.length?' filled':'');
+}
+
+let ppinConfirmFirst=''; // store first entry during setup
+async function confirmPinSetup(){
+  if(!ppinConfirmFirst){
+    // First entry — ask to confirm
+    ppinConfirmFirst=ppinBuf; ppinBuf='';
+    document.getElementById('ppin-sub').textContent='Confirma tu PIN';
+    document.getElementById('ppin-setup-note').style.display='none';
+    updatePpinDots();
+    return;
+  }
+  // Second entry — compare
+  if(ppinBuf!==ppinConfirmFirst){
+    document.getElementById('ppin-err').textContent='Los PINs no coinciden. Intenta de nuevo.';
+    ppinBuf=''; ppinConfirmFirst=''; updatePpinDots();
+    document.getElementById('ppin-sub').textContent='Elige un PIN de 4 dígitos';
+    return;
+  }
+  // Match — save
+  const player=ppinPendingPlayer;
+  player.pinHash=hashPin(ppinBuf);
+  ppinConfirmFirst='';
+  try{
+    await window._db.savePlayer(player);
+    myId=player.id; localStorage.setItem(MY_ID_KEY,myId);
+    closePpinOverlay();
+    showPredView();
+    toast('¡Registrado! PIN guardado 🔐');
+  } catch(e){ toast('Error al guardar'); closePpinOverlay(); }
+}
+
+function confirmPinLogin(){
+  const player=ppinPendingPlayer;
+  if(hashPin(ppinBuf)===player.pinHash){
+    myId=player.id; localStorage.setItem(MY_ID_KEY,myId);
+    closePpinOverlay();
+    showPredView();
+    toast('¡Bienvenido, '+player.name+'! 👋');
+  } else {
+    document.getElementById('ppin-err').textContent='PIN incorrecto';
+    ppinBuf=''; updatePpinDots();
+  }
+}
+
 /* ============================================================
    REGISTRATION
    ============================================================ */
@@ -819,6 +990,9 @@ async function register(){
   // Check if email already registered
   const existing=players.find(p=>p.email.toLowerCase()===email.toLowerCase());
   if(existing){
+    // Require PIN login
+    if(existing.pinHash){ openPinLogin(existing); return; }
+    // No PIN set yet — just log in (legacy)
     myId=existing.id; localStorage.setItem(MY_ID_KEY,myId);
     showPredView(); toast('¡Bienvenido de nuevo, '+existing.name+'! 👋'); return;
   }
@@ -826,11 +1000,12 @@ async function register(){
   const btn=document.getElementById('reg-btn');
   btn.innerHTML='<span class="spinner"></span>Registrando...'; btn.disabled=true;
 
-  const player={id:uid(), name, email, approved:false, paid:false, gpreds:{}, kopreds:{}};
+  const player={id:uid(), name, email, approved:false, paid:false, gpreds:{}, kopreds:{}, pinHash:''};
   try{
     await window._db.savePlayer(player);
-    myId=player.id; localStorage.setItem(MY_ID_KEY,myId);
-    showPredView(); toast('¡Registrado! Haz tus predicciones 🎯');
+    btn.innerHTML='Registrarme →'; btn.disabled=false;
+    // Open PIN setup flow
+    openPinSetup(player);
   } catch(e){
     toast('Error de conexión. Intenta de nuevo.'); console.error(e);
     btn.innerHTML='Registrarme →'; btn.disabled=false;
@@ -1325,11 +1500,23 @@ async function deletePlayer(id){
 function openEditFor(id){
   const el=document.getElementById('edit-sel');
   el.innerHTML=players.map(p=>`<option value="${p.id}"${p.id===id?' selected':''}>${p.name}</option>`).join('');
+  // Reset to groups tab
+  document.querySelectorAll('.edit-tab').forEach((b,i)=>b.classList.toggle('active',i===0));
+  document.querySelectorAll('.edit-section').forEach((s,i)=>s.classList.toggle('active',i===0));
   document.getElementById('edit-modal').classList.add('open');
   loadEditPlayer();
 }
 function closeEditModal(e){ if(e&&e.target!==document.getElementById('edit-modal')) return; saveAndCloseEdit(); }
 function saveAndCloseEdit(){ document.getElementById('edit-modal').classList.remove('open'); renderAdminPlayers(); }
+
+function switchEditTab(tab, el){
+  document.querySelectorAll('.edit-tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.edit-section').forEach(s=>s.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('edit-section-'+tab).classList.add('active');
+  if(tab==='playoff') loadEditKO();
+  if(tab==='groups') loadEditPlayer();
+}
 
 function loadEditPlayer(){
   const id=document.getElementById('edit-sel').value;
@@ -1360,6 +1547,87 @@ async function setEditPred(playerId,matchId,type){
   if(ex&&ex.type===type) delete preds[matchId]; else preds[matchId]={type};
   try{ await window._db.updatePlayer(playerId,{gpreds:preds}); loadEditPlayer(); }
   catch(e){ toast('Error al guardar'); }
+}
+
+function loadEditKO(){
+  const id=document.getElementById('edit-sel').value;
+  const player=players.find(p=>p.id===id);
+  const container=document.getElementById('edit-ko-list');
+  if(!player||!settings.koTeams?.length){
+    container.innerHTML='<div style="color:var(--muted);font-size:13px;padding:10px 0">'+
+      (settings.koTeams?.length?'Sin bracket configurado':'Primero configura los 32 equipos en el admin.')+
+    '</div>';
+    return;
+  }
+  const preds=JSON.parse(JSON.stringify(player.kopreds||{}));
+  ['r32','r16','qf','sf','fin'].forEach(r=>{if(!Array.isArray(preds[r]))preds[r]=[];});
+  const teams=settings.koTeams||[];
+  const p=settings.pts||{};
+
+  const r32Teams=i=>({t1:teams[2*i]||null,t2:teams[2*i+1]||null});
+  const pick=(round,slot)=>preds[round]?.[slot]||null;
+  const r32Win=i=>pick('r32',i);
+  const r16Win=i=>pick('r16',i);
+  const qfWin=i=>pick('qf',i);
+  const sfWin=i=>pick('sf',i);
+
+  function koEditBtn(t,isWinner,roundId,slot){
+    if(!t) return `<div class="ko-edit-team tbd"><span class="ko-edit-flag">🏳️</span><span class="ko-edit-name" style="color:var(--sub)">TBD</span></div>`;
+    return `<div class="ko-edit-team${isWinner?' winner':''}" onclick="setEditKOPred('${id}','${roundId}',${slot},'${t.id}')">
+      <span class="ko-edit-flag">${t.flag||'🏳️'}</span>
+      <span class="ko-edit-name">${t.name}</span>
+      ${isWinner?'<span style="margin-left:auto;color:var(--ink3);font-size:14px">✓</span>':''}
+    </div>`;
+  }
+
+  function koEditMatch(t1,t2,roundId,slot,winner){
+    const w1=winner&&t1&&winner.id===t1.id;
+    const w2=winner&&t2&&winner.id===t2.id;
+    return `<div class="ko-edit-match">${koEditBtn(t1,w1,roundId,slot)}${koEditBtn(t2,w2,roundId,slot)}</div>`;
+  }
+
+  const rounds=[
+    {id:'r32',name:'Round of 32',pts:p.r32||3,count:16,
+     matchFn:(i)=>{ const {t1,t2}=r32Teams(i); return koEditMatch(t1,t2,'r32',i,r32Win(i)); }},
+    {id:'r16',name:'Round of 16',pts:p.r16||5,count:8,
+     matchFn:(i)=>{ const t1=r32Win(R16_PAIRS[i][0]-1),t2=r32Win(R16_PAIRS[i][1]-1); return koEditMatch(t1,t2,'r16',i,r16Win(i)); }},
+    {id:'qf',name:'Cuartos de Final',pts:p.qf||8,count:4,
+     matchFn:(i)=>{ const t1=r16Win(QF_PAIRS[i][0]),t2=r16Win(QF_PAIRS[i][1]); return koEditMatch(t1,t2,'qf',i,qfWin(i)); }},
+    {id:'sf',name:'Semifinales',pts:p.sf||10,count:2,
+     matchFn:(i)=>{ const t1=qfWin(SF_PAIRS[i][0]),t2=qfWin(SF_PAIRS[i][1]); return koEditMatch(t1,t2,'sf',i,pick('sf',i)); }},
+    {id:'fin',name:'Final',pts:p.fin||20,count:1,
+     matchFn:(i)=>{ const t1=pick('sf',0),t2=pick('sf',1); return koEditMatch(t1,t2,'fin',0,pick('fin',0)); }},
+  ];
+
+  let html='';
+  rounds.forEach(r=>{
+    html+=`<div class="ko-edit-round">
+      <div class="ko-edit-round-title">${r.name}<span class="ko-edit-pts">+${r.pts} pts</span></div>`;
+    for(let i=0;i<r.count;i++) html+=r.matchFn(i);
+    html+='</div>';
+  });
+  container.innerHTML=html;
+}
+
+async function setEditKOPred(playerId,roundId,slot,teamId){
+  const player=players.find(p=>p.id===playerId); if(!player) return;
+  const preds=JSON.parse(JSON.stringify(player.kopreds||{}));
+  ['r32','r16','qf','sf','fin'].forEach(r=>{if(!Array.isArray(preds[r]))preds[r]=[];});
+  const team=(settings.koTeams||[]).find(t=>t.id===teamId)||null;
+  if(!team) return;
+  const existing=preds[roundId][slot];
+  if(existing&&existing.id===teamId){
+    preds[roundId][slot]=null;
+    cascadeClear(preds,roundId,slot,teamId);
+  } else {
+    if(existing) cascadeClear(preds,roundId,slot,existing.id);
+    preds[roundId][slot]=team;
+  }
+  player.kopreds=preds;
+  try{
+    await window._db.updatePlayer(playerId,{kopreds:preds});
+    loadEditKO();
+  } catch(e){ toast('Error al guardar'); }
 }
 
 /* ADMIN — RESULTS */
