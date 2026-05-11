@@ -1186,7 +1186,7 @@ function renderKOContent(){
   let html = `<div class="ko-note">Toca el equipo ganador — avanza automáticamente</div><div class="bracket-wrap"><div class="bracket">`;
 
   // ── R32 ──
-  html += `<div class="bracket-round"><div class="bracket-round-title">R32<span class="bracket-pts">+${p.r32||3} pts</span></div><div class="bracket-matches">`;
+  html += `<div class="bracket-round"><div class="bracket-round-title">R32<span class="bracket-pts">+${p.r32??0} pts</span></div><div class="bracket-matches">`;
   for(let i=0;i<16;i++){
     const {t1,t2}=r32Teams(i);
     html += matchBlock(t1,t2,'r32',i,r32Win(i));
@@ -1194,7 +1194,7 @@ function renderKOContent(){
   html += `</div></div>`;
 
   // ── R16 ──
-  html += `<div class="bracket-round"><div class="bracket-round-title">R16<span class="bracket-pts">+${p.r16||5} pts</span></div><div class="bracket-matches">`;
+  html += `<div class="bracket-round"><div class="bracket-round-title">R16<span class="bracket-pts">+${p.r16??0} pts</span></div><div class="bracket-matches">`;
   for(let i=0;i<8;i++){
     const t1=r32Win(R16_PAIRS[i][0]-1);
     const t2=r32Win(R16_PAIRS[i][1]-1);
@@ -1203,7 +1203,7 @@ function renderKOContent(){
   html += `</div></div>`;
 
   // ── QF ──
-  html += `<div class="bracket-round"><div class="bracket-round-title">QF<span class="bracket-pts">+${p.qf||8} pts</span></div><div class="bracket-matches">`;
+  html += `<div class="bracket-round"><div class="bracket-round-title">QF<span class="bracket-pts">+${p.qf??0} pts</span></div><div class="bracket-matches">`;
   for(let i=0;i<4;i++){
     const t1=r16Win(QF_PAIRS[i][0]);
     const t2=r16Win(QF_PAIRS[i][1]);
@@ -1212,7 +1212,7 @@ function renderKOContent(){
   html += `</div></div>`;
 
   // ── SF ──
-  html += `<div class="bracket-round"><div class="bracket-round-title">SF<span class="bracket-pts">+${p.sf||10} pts</span></div><div class="bracket-matches">`;
+  html += `<div class="bracket-round"><div class="bracket-round-title">SF<span class="bracket-pts">+${p.sf??0} pts</span></div><div class="bracket-matches">`;
   for(let i=0;i<2;i++){
     const t1=qfWin(SF_PAIRS[i][0]);
     const t2=qfWin(SF_PAIRS[i][1]);
@@ -1222,13 +1222,13 @@ function renderKOContent(){
 
   // ── FINAL ──
   const finT1=sfWin(0), finT2=sfWin(1), finW=finWin();
-  html += `<div class="bracket-round"><div class="bracket-round-title">FINAL<span class="bracket-pts">+${p.fin||20} pts</span></div><div class="bracket-matches">`;
+  html += `<div class="bracket-round"><div class="bracket-round-title">FINAL<span class="bracket-pts">+${p.fin??0} pts</span></div><div class="bracket-matches">`;
   html += matchBlock(finT1,finT2,'fin',0,finW);
   html += `</div></div>`;
 
   // ── CHAMPION ──
   const champ=finW;
-  html += `<div class="bracket-round" style="min-width:90px"><div class="bracket-round-title">🏆<span class="bracket-pts">+${p.champ||50} pts</span></div><div class="bracket-matches"><div class="bracket-match"><div class="champ-box">
+  html += `<div class="bracket-round" style="min-width:90px"><div class="bracket-round-title">🏆<span class="bracket-pts">+${p.champ??0} pts</span></div><div class="bracket-matches"><div class="bracket-match"><div class="champ-box">
     <div class="champ-trophy">🏆</div>
     ${champ
       ? `<div class="champ-team"><span class="champ-flag">${champ.flag||'🏳️'}</span><span class="champ-name">${champ.name}</span></div>`
@@ -1309,7 +1309,7 @@ function calcScore(player){
     const res=settings.results?.[mid];
     if(!res) return;
     const actual=res.home>res.away?'home':res.away>res.home?'away':'draw';
-    if(pred.type===actual){ pts+=(p.result||1); correct++; }
+    if(pred.type===actual){ pts+=(p.result??0); correct++; }
   });
   // KO scoring: compare player's bracket picks vs actual koResults
   // koResults stored as arrays of team objects per round (slot-indexed)
@@ -1589,15 +1589,15 @@ function loadEditKO(){
   }
 
   const rounds=[
-    {id:'r32',name:'Round of 32',pts:p.r32||3,count:16,
+    {id:'r32',name:'Round of 32',pts:p.r32??0,count:16,
      matchFn:(i)=>{ const {t1,t2}=r32Teams(i); return koEditMatch(t1,t2,'r32',i,r32Win(i)); }},
-    {id:'r16',name:'Round of 16',pts:p.r16||5,count:8,
+    {id:'r16',name:'Round of 16',pts:p.r16??0,count:8,
      matchFn:(i)=>{ const t1=r32Win(R16_PAIRS[i][0]-1),t2=r32Win(R16_PAIRS[i][1]-1); return koEditMatch(t1,t2,'r16',i,r16Win(i)); }},
-    {id:'qf',name:'Cuartos de Final',pts:p.qf||8,count:4,
+    {id:'qf',name:'Cuartos de Final',pts:p.qf??0,count:4,
      matchFn:(i)=>{ const t1=r16Win(QF_PAIRS[i][0]),t2=r16Win(QF_PAIRS[i][1]); return koEditMatch(t1,t2,'qf',i,qfWin(i)); }},
-    {id:'sf',name:'Semifinales',pts:p.sf||10,count:2,
+    {id:'sf',name:'Semifinales',pts:p.sf??0,count:2,
      matchFn:(i)=>{ const t1=qfWin(SF_PAIRS[i][0]),t2=qfWin(SF_PAIRS[i][1]); return koEditMatch(t1,t2,'sf',i,pick('sf',i)); }},
-    {id:'fin',name:'Final',pts:p.fin||20,count:1,
+    {id:'fin',name:'Final',pts:p.fin??0,count:1,
      matchFn:(i)=>{ const t1=pick('sf',0),t2=pick('sf',1); return koEditMatch(t1,t2,'fin',0,pick('fin',0)); }},
   ];
 
@@ -1813,40 +1813,40 @@ function renderKOResultsAdmin(){
   let html='';
 
   // R32
-  html+=`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.35);padding:12px 0 6px">Round of 32 (+${p.r32||3} pts)</div>`;
+  html+=`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.35);padding:12px 0 6px">Round of 32 (+${p.r32??0} pts)</div>`;
   for(let i=0;i<16;i++){
     const {t1,t2}=r32Teams(i);
     html+=aMatchRow(t1,t2,'r32',i,r32Win(i),`M${i+1}`);
   }
 
   // R16
-  html+=`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.35);padding:14px 0 6px">Round of 16 (+${p.r16||5} pts)</div>`;
+  html+=`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.35);padding:14px 0 6px">Round of 16 (+${p.r16??0} pts)</div>`;
   for(let i=0;i<8;i++){
     const t1=r32Win(R16_PAIRS[i][0]-1), t2=r32Win(R16_PAIRS[i][1]-1);
     html+=aMatchRow(t1,t2,'r16',i,r16Win(i),`M${i+1}`);
   }
 
   // QF
-  html+=`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.35);padding:14px 0 6px">Cuartos de Final (+${p.qf||8} pts)</div>`;
+  html+=`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.35);padding:14px 0 6px">Cuartos de Final (+${p.qf??0} pts)</div>`;
   for(let i=0;i<4;i++){
     const t1=r16Win(QF_PAIRS[i][0]), t2=r16Win(QF_PAIRS[i][1]);
     html+=aMatchRow(t1,t2,'qf',i,qfWin(i),`M${i+1}`);
   }
 
   // SF
-  html+=`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.35);padding:14px 0 6px">Semifinales (+${p.sf||10} pts)</div>`;
+  html+=`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.35);padding:14px 0 6px">Semifinales (+${p.sf??0} pts)</div>`;
   for(let i=0;i<2;i++){
     const t1=qfWin(SF_PAIRS[i][0]), t2=qfWin(SF_PAIRS[i][1]);
     html+=aMatchRow(t1,t2,'sf',i,sfWin(i),`M${i+1}`);
   }
 
   // Final
-  html+=`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.35);padding:14px 0 6px">Final (+${p.fin||20} pts)</div>`;
+  html+=`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.35);padding:14px 0 6px">Final (+${p.fin??0} pts)</div>`;
   html+=aMatchRow(sfWin(0),sfWin(1),'fin',0,finWin(),'Final');
 
   // Champion
   const champ=finWin();
-  html+=`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.35);padding:14px 0 6px">Campeón (+${p.champ||50} pts)</div>`;
+  html+=`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.35);padding:14px 0 6px">Campeón (+${p.champ??0} pts)</div>`;
   html+=`<div style="display:flex;align-items:center;gap:8px;padding:10px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:10px">
     <span style="font-size:24px">${champ?champ.flag||'🏳️':'🏆'}</span>
     <span style="font-size:14px;font-weight:700;color:${champ?'#f59e0b':'rgba(255,255,255,.3)'}">
