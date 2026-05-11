@@ -779,11 +779,16 @@ window.addEventListener('firebase-ready', ()=>{
     settings=Object.assign({},defaults,data);
     if(data.pts) settings.pts=Object.assign({},defaults.pts,data.pts);
     if(data.results) settings.results=Object.assign({},data.results);
+    if(data.koResults) settings.koResults=Object.assign({},data.koResults);
     renderGroups();
     renderKnockout();
     renderRanking();
     renderProfile();
     syncAdminSettings();
+    // Re-render admin KO screen if it's currently open
+    if(isAdmin && document.getElementById('a-koresults')?.classList.contains('active')){
+      renderKOResultsAdmin();
+    }
   });
 
   // Restore session
@@ -1596,6 +1601,10 @@ async function setKOResult(roundId,slot,teamId){
     if(existing) cascadeClearKO(kr,roundId,slot,existing.id);
     kr[roundId][slot]=team;
   }
+  // Update local state immediately so UI re-renders without waiting for Firestore
+  settings.koResults=kr;
+  renderKOResultsAdmin();
+  renderRanking();
   try{
     await window._db.saveSettings({koResults:kr});
   } catch(e){ toast('Error al guardar'); }
