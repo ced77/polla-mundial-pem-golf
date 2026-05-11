@@ -426,8 +426,9 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);overscroll-behavior:none;
   </div>
   <div class="admin-tabs">
     <button class="admin-tab active" onclick="adminTab('players',this)">👥 Jugadores</button>
-    <button class="admin-tab" onclick="adminTab('results',this)">📋 Resultados</button>
-    <button class="admin-tab" onclick="adminTab('ko',this)">⚔️ Eliminat.</button>
+    <button class="admin-tab" onclick="adminTab('results',this)">📋 Grupos</button>
+    <button class="admin-tab" onclick="adminTab('ko',this)">⚔️ Equipos</button>
+    <button class="admin-tab" onclick="adminTab('koresults',this)">🏆 Result. KO</button>
     <button class="admin-tab" onclick="adminTab('settings',this)">⚙️ Config</button>
   </div>
   <div class="admin-body">
@@ -438,7 +439,9 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);overscroll-behavior:none;
 
     <div id="a-results" class="admin-screen">
       <div class="a-card">
-        <div class="a-card-hdr">Resultados — Fase de Grupos</div>
+        <div class="a-card-hdr">Resultados — Fase de Grupos
+          <button onclick="clearAllGroupResults()" style="background:rgba(239,68,68,.2);border:1px solid rgba(239,68,68,.4);color:#fca5a5;border-radius:8px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">🗑 Borrar todo</button>
+        </div>
         <div id="a-results-list"></div>
       </div>
       <button class="a-save-btn" onclick="saveAdminResults()">💾 Guardar resultados</button>
@@ -446,7 +449,10 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);overscroll-behavior:none;
 
     <div id="a-ko" class="admin-screen">
       <div class="a-card" style="margin-bottom:10px">
-        <div class="a-card-hdr">32 Equipos clasificados</div>
+        <div class="a-card-hdr">32 Equipos clasificados
+          <button onclick="clearKOTeams()" style="background:rgba(239,68,68,.2);border:1px solid rgba(239,68,68,.4);color:#fca5a5;border-radius:8px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">🗑 Borrar todo</button>
+        </div>
+        <div style="font-size:10px;color:rgba(255,255,255,.35);padding:8px 14px 4px">💡 Si el nombre del equipo coincide con uno de los grupos, la bandera se añade automáticamente.</div>
         <div class="ko-teams-grid" id="ko-teams-grid"></div>
       </div>
       <button class="a-save-btn" onclick="saveKOTeams()">💾 Guardar equipos</button>
@@ -457,6 +463,15 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);overscroll-behavior:none;
           <button class="ko-unlock-btn locked" id="ko-unlock-btn" onclick="toggleKO()">🔓 Desbloquear eliminatorias</button>
         </div>
       </div>
+    </div>
+
+    <div id="a-koresults" class="admin-screen">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-size:11px;color:rgba(255,255,255,.4);line-height:1.6;flex:1">Introduce los resultados reales del bracket para calcular los puntos.</div>
+        <button onclick="clearAllKOResults()" style="margin-left:10px;flex-shrink:0;background:rgba(239,68,68,.2);border:1px solid rgba(239,68,68,.4);color:#fca5a5;border-radius:8px;padding:6px 12px;font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap">🗑 Borrar todo</button>
+      </div>
+      <div id="a-koresults-content"></div>
+      <button class="a-save-btn" onclick="saveKOResults()">💾 Confirmar resultados</button>
     </div>
 
     <div id="a-settings" class="admin-screen">
@@ -1116,11 +1131,25 @@ function calcScore(player){
     const actual=res.home>res.away?'home':res.away>res.home?'away':'draw';
     if(pred.type===actual){ pts+=(p.result||1); correct++; }
   });
-  KO_ROUNDS.forEach(r=>{
-    const sel=player.kopreds?.[r.id]||[];
-    const actual=settings.koResults?.[r.id]||[];
-    sel.forEach(t=>{ if(actual.some(a=>a.id===t.id)) pts+=(p[r.pts_key]||0); });
+  // KO scoring: compare player's bracket picks vs actual koResults
+  // koResults stored as arrays of team objects per round (slot-indexed)
+  // For each round, a player gets points for each team they correctly picked as winner
+  const kr=settings.koResults||{};
+  ['r32','r16','qf','sf','fin'].forEach(roundId=>{
+    const ptsKey={r32:'r32',r16:'r16',qf:'qf',sf:'sf',fin:'fin'}[roundId];
+    const roundPts=p[ptsKey]||0;
+    if(!roundPts) return;
+    const playerPicks=(player.kopreds?.[roundId]||[]).filter(Boolean);
+    const actualWinners=(kr[roundId]||[]).filter(Boolean);
+    if(!actualWinners.length) return;
+    playerPicks.forEach(pick=>{
+      if(actualWinners.some(a=>a.id===pick.id)) pts+=roundPts;
+    });
   });
+  // Champion bonus
+  const champPick=(player.kopreds?.['fin']||[])[0];
+  const champActual=(kr['fin']||[])[0];
+  // Champion pts already counted via 'fin' above; champ is just the fin winner
   return{pts,correct};
 }
 
@@ -1226,7 +1255,7 @@ function openAdmin(){
   isAdmin=true;
   document.getElementById('admin-pill').classList.add('on');
   document.getElementById('admin-overlay').classList.add('open');
-  renderAdminPlayers(); renderAdminResults(); renderKOTeamsAdmin(); syncAdminSettings();
+  renderAdminPlayers(); renderAdminResults(); renderKOTeamsAdmin(); syncAdminSettings(); renderKOResultsAdmin();
 }
 function closeAdmin(){
   document.getElementById('admin-overlay').classList.remove('open');
@@ -1238,6 +1267,9 @@ function adminTab(tab,el){
   document.querySelectorAll('.admin-screen').forEach(s=>s.classList.remove('active'));
   el.classList.add('active');
   document.getElementById('a-'+tab).classList.add('active');
+  if(tab==='koresults') renderKOResultsAdmin();
+  if(tab==='results') renderAdminResults();
+  if(tab==='ko') renderKOTeamsAdmin();
 }
 
 /* ADMIN — PLAYERS */
@@ -1332,7 +1364,8 @@ function renderAdminResults(){
       <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.35);padding:12px 14px 6px">Grupo ${g}</div>
       ${MATCHES.filter(m=>m.g===g).map(m=>{
         const res=(settings.results||{})[m.id]||{};
-        return `<div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:6px;padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.04)">
+        const hasRes=res.home!==undefined&&res.away!==undefined;
+        return `<div style="display:grid;grid-template-columns:1fr auto 1fr auto;align-items:center;gap:6px;padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.04)">
           <div style="font-size:11px;color:#fff;text-align:right">${m.hf} ${m.h}</div>
           <div style="display:flex;align-items:center;gap:4px">
             <input type="number" min="0" max="20" inputmode="numeric" value="${res.home??''}" placeholder="0" id="ar-${m.id}-h" style="width:34px;height:34px;text-align:center;font-size:16px;font-weight:700;border:1px solid rgba(255,255,255,.15);border-radius:8px;background:rgba(255,255,255,.08);color:#fff;font-family:'DM Sans',sans-serif;outline:none">
@@ -1340,6 +1373,7 @@ function renderAdminResults(){
             <input type="number" min="0" max="20" inputmode="numeric" value="${res.away??''}" placeholder="0" id="ar-${m.id}-a" style="width:34px;height:34px;text-align:center;font-size:16px;font-weight:700;border:1px solid rgba(255,255,255,.15);border-radius:8px;background:rgba(255,255,255,.08);color:#fff;font-family:'DM Sans',sans-serif;outline:none">
           </div>
           <div style="font-size:11px;color:#fff">${m.a} ${m.af}</div>
+          <button onclick="clearGroupResult('${m.id}')" style="width:22px;height:22px;border-radius:50%;border:none;background:${hasRes?'rgba(239,68,68,.25)':'rgba(255,255,255,.05)'};color:${hasRes?'#fca5a5':'rgba(255,255,255,.2)'};font-size:12px;cursor:${hasRes?'pointer':'default'};line-height:1;display:flex;align-items:center;justify-content:center" ${hasRes?'':'disabled'}>×</button>
         </div>`;
       }).join('')}`
     ).join('');
@@ -1356,30 +1390,98 @@ async function saveAdminResults(){
   catch(e){ toast('Error al guardar'); }
 }
 
+
+/* ── FLAG LOOKUP from MATCHES data ── */
+const TEAM_FLAGS = (() => {
+  const map = {};
+  MATCHES.forEach(m => {
+    if(m.h && m.hf) map[m.h] = m.hf;
+    if(m.a && m.af) map[m.a] = m.af;
+  });
+  return map;
+})();
+
+/* ── CLEAR GROUP RESULTS ── */
+async function clearAllGroupResults(){
+  if(!confirm('¿Borrar TODOS los resultados de la fase de grupos? Esto afecta los puntos de todos los jugadores.')) return;
+  try{
+    await window._db.saveSettings({results:{}});
+    renderAdminResults();
+    toast('🗑 Resultados de grupos borrados');
+  } catch(e){ toast('Error al borrar'); }
+}
+
+/* ── CLEAR KO RESULTS ── */
+async function clearAllKOResults(){
+  if(!confirm('¿Borrar TODOS los resultados de eliminatorias? Esto reinicia el bracket y los puntos KO de todos.')) return;
+  try{
+    await window._db.saveSettings({koResults:{}});
+    renderKOResultsAdmin();
+    renderRanking();
+    toast('🗑 Resultados de eliminatorias borrados');
+  } catch(e){ toast('Error al borrar'); }
+}
+
+/* ── CLEAR single group result ── */
+async function clearGroupResult(matchId){
+  const results=Object.assign({},settings.results||{});
+  delete results[matchId];
+  try{
+    await window._db.saveSettings({results});
+    renderAdminResults();
+  } catch(e){ toast('Error al borrar'); }
+}
+
 /* ADMIN — KO TEAMS */
 function renderKOTeamsAdmin(){
   const teams=settings.koTeams||[];
+  // Add clear all button above grid
   let html='';
   for(let i=0;i<32;i++){
     const t=teams[i]||{id:'t'+i,name:'',flag:''};
     html+=`<div class="ko-team-input">
       <span class="ko-team-num">${i+1}</span>
-      <input class="ko-team-flag" type="text" id="ko-flag-${i}" value="${t.flag||''}" placeholder="🏳️" maxlength="4">
-      <input class="ko-team-name" type="text" id="ko-name-${i}" value="${t.name||''}" placeholder="País...">
+      <input class="ko-team-flag" type="text" id="ko-flag-${i}" value="${t.flag||''}" placeholder="🏳️" maxlength="4" oninput="autoFlag(${i})">
+      <input class="ko-team-name" type="text" id="ko-name-${i}" value="${t.name||''}" placeholder="País..." oninput="autoFlag(${i})">
     </div>`;
   }
   document.getElementById('ko-teams-grid').innerHTML=html;
 }
 
+/* Auto-fill flag when team name matches a known team from MATCHES */
+function autoFlag(i){
+  const nameEl=document.getElementById('ko-name-'+i);
+  const flagEl=document.getElementById('ko-flag-'+i);
+  if(!nameEl||!flagEl) return;
+  const name=nameEl.value.trim();
+  // Only auto-fill if flag field is empty
+  if(flagEl.value) return;
+  const knownFlag=TEAM_FLAGS[name];
+  if(knownFlag) flagEl.value=knownFlag;
+}
+
 async function saveKOTeams(){
   const teams=[];
   for(let i=0;i<32;i++){
-    const flag=document.getElementById(`ko-flag-${i}`)?.value.trim()||'🏳️';
+    let flag=document.getElementById(`ko-flag-${i}`)?.value.trim();
     const name=document.getElementById(`ko-name-${i}`)?.value.trim();
-    if(name) teams.push({id:'t'+i,name,flag});
+    if(!name) continue;
+    // Auto-apply flag from known teams if not set
+    if(!flag||flag==='🏳️') flag=TEAM_FLAGS[name]||'🏳️';
+    teams.push({id:'t'+i,name,flag});
   }
   try{ await window._db.saveSettings({koTeams:teams}); toast(`✅ ${teams.length} equipos guardados`); }
   catch(e){ toast('Error al guardar'); }
+}
+
+/* ── CLEAR all KO team slots ── */
+async function clearKOTeams(){
+  if(!confirm('¿Borrar todos los equipos del bracket?')) return;
+  try{
+    await window._db.saveSettings({koTeams:[]});
+    renderKOTeamsAdmin();
+    toast('🗑 Equipos borrados');
+  } catch(e){ toast('Error'); }
 }
 
 async function toggleKO(){
@@ -1388,6 +1490,135 @@ async function toggleKO(){
     await window._db.saveSettings({koUnlocked:unlocked});
     toast(unlocked?'🔓 Eliminatorias desbloqueadas para todos':'🔒 Eliminatorias bloqueadas');
   } catch(e){ toast('Error'); }
+}
+
+
+/* ADMIN — KO RESULTS BRACKET */
+function renderKOResultsAdmin(){
+  const teams=settings.koTeams||[];
+  const kr=settings.koResults||{};
+  const p=settings.pts||{};
+
+  if(!teams.length){
+    document.getElementById('a-koresults-content').innerHTML=
+      '<div style="color:rgba(255,255,255,.3);font-size:13px;padding:20px 0;text-align:center">Primero configura los 32 equipos en la pestaña Equipos.</div>';
+    return;
+  }
+
+  // Same bracket logic as frontend but admin picks the actual results
+  const getTeam=id=>teams.find(t=>t.id===id)||null;
+  const pick=(round,slot)=>{const arr=kr[round]||[];return arr[slot]||null;};
+  const r32Teams=i=>({t1:teams[2*i]||null,t2:teams[2*i+1]||null});
+  const r32Win=i=>pick('r32',i);
+  const r16Win=i=>pick('r16',i);
+  const qfWin=i=>pick('qf',i);
+  const sfWin=i=>pick('sf',i);
+  const finWin=()=>pick('fin',0);
+
+  function aTeamBtn(t,isWinner,roundId,slot){
+    if(!t) return `<div style="padding:5px 8px;border-radius:6px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);opacity:.4;font-size:10px;color:rgba(255,255,255,.4);min-width:80px">TBD</div>`;
+    const win=isWinner?'background:rgba(34,197,94,.2);border-color:#22c55e;color:#fff;':'background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.12);color:rgba(255,255,255,.8);';
+    return `<div onclick="setKOResult('${roundId}',${slot},'${t.id}')" style="cursor:pointer;padding:5px 8px;border-radius:6px;border:1px solid;${win}font-size:10px;font-weight:600;min-width:80px;display:flex;align-items:center;gap:5px;transition:all .15s">
+      <span>${t.flag||'🏳️'}</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.name}</span>${isWinner?'<span style="margin-left:auto;color:#22c55e">✓</span>':''}
+    </div>`;
+  }
+
+  function aMatchRow(t1,t2,roundId,slot,winner,label){
+    const w1=winner&&t1&&winner.id===t1.id;
+    const w2=winner&&t2&&winner.id===t2.id;
+    return `<div style="display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+      <span style="font-size:9px;color:rgba(255,255,255,.25);width:40px;flex-shrink:0">${label}</span>
+      <div style="display:flex;flex-direction:column;gap:3px;flex:1">
+        ${aTeamBtn(t1,w1,roundId,slot)}
+        ${aTeamBtn(t2,w2,roundId,slot)}
+      </div>
+    </div>`;
+  }
+
+  let html='';
+
+  // R32
+  html+=`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.35);padding:12px 0 6px">Round of 32 (+${p.r32||3} pts)</div>`;
+  for(let i=0;i<16;i++){
+    const {t1,t2}=r32Teams(i);
+    html+=aMatchRow(t1,t2,'r32',i,r32Win(i),`M${i+1}`);
+  }
+
+  // R16
+  html+=`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.35);padding:14px 0 6px">Round of 16 (+${p.r16||5} pts)</div>`;
+  for(let i=0;i<8;i++){
+    const t1=r32Win(R16_PAIRS[i][0]-1), t2=r32Win(R16_PAIRS[i][1]-1);
+    html+=aMatchRow(t1,t2,'r16',i,r16Win(i),`M${i+1}`);
+  }
+
+  // QF
+  html+=`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.35);padding:14px 0 6px">Cuartos de Final (+${p.qf||8} pts)</div>`;
+  for(let i=0;i<4;i++){
+    const t1=r16Win(QF_PAIRS[i][0]), t2=r16Win(QF_PAIRS[i][1]);
+    html+=aMatchRow(t1,t2,'qf',i,qfWin(i),`M${i+1}`);
+  }
+
+  // SF
+  html+=`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.35);padding:14px 0 6px">Semifinales (+${p.sf||10} pts)</div>`;
+  for(let i=0;i<2;i++){
+    const t1=qfWin(SF_PAIRS[i][0]), t2=qfWin(SF_PAIRS[i][1]);
+    html+=aMatchRow(t1,t2,'sf',i,sfWin(i),`M${i+1}`);
+  }
+
+  // Final
+  html+=`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.35);padding:14px 0 6px">Final (+${p.fin||20} pts)</div>`;
+  html+=aMatchRow(sfWin(0),sfWin(1),'fin',0,finWin(),'Final');
+
+  // Champion
+  const champ=finWin();
+  html+=`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.35);padding:14px 0 6px">Campeón (+${p.champ||50} pts)</div>`;
+  html+=`<div style="display:flex;align-items:center;gap:8px;padding:10px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:10px">
+    <span style="font-size:24px">${champ?champ.flag||'🏳️':'🏆'}</span>
+    <span style="font-size:14px;font-weight:700;color:${champ?'#f59e0b':'rgba(255,255,255,.3)'}">
+      ${champ?champ.name:'Sin definir — selecciona el ganador de la Final arriba'}
+    </span>
+  </div>`;
+
+  document.getElementById('a-koresults-content').innerHTML=html;
+}
+
+async function setKOResult(roundId,slot,teamId){
+  const team=(settings.koTeams||[]).find(t=>t.id===teamId)||null;
+  if(!team) return;
+  const kr=JSON.parse(JSON.stringify(settings.koResults||{}));
+  ['r32','r16','qf','sf','fin'].forEach(r=>{if(!Array.isArray(kr[r]))kr[r]=[];});
+  // Toggle: click same = deselect
+  const existing=kr[roundId][slot];
+  if(existing&&existing.id===teamId){
+    kr[roundId][slot]=null;
+    cascadeClearKO(kr,roundId,slot,teamId);
+  } else {
+    if(existing) cascadeClearKO(kr,roundId,slot,existing.id);
+    kr[roundId][slot]=team;
+  }
+  try{
+    await window._db.saveSettings({koResults:kr});
+  } catch(e){ toast('Error al guardar'); }
+}
+
+function cascadeClearKO(kr,roundId,slot,teamId){
+  const order=['r32','r16','qf','sf','fin'];
+  const ri=order.indexOf(roundId);
+  for(let i=ri+1;i<order.length;i++){
+    const r=order[i];
+    if(!kr[r]) continue;
+    for(let s=0;s<kr[r].length;s++){
+      if(kr[r][s]&&kr[r][s].id===teamId){
+        kr[r][s]=null;
+        cascadeClearKO(kr,r,s,teamId);
+      }
+    }
+  }
+}
+
+async function saveKOResults(){
+  toast('✅ Resultados KO guardados — puntos recalculados');
+  renderRanking();
 }
 
 /* ADMIN — SETTINGS */
@@ -1452,6 +1683,31 @@ function openPdet(playerId){
       </div>`;
     });
   });
+
+  // ── KO predictions section ──
+  const kopreds=player.kopreds||{};
+  const kr=settings.koResults||{};
+  const roundLabels={r32:'Round of 32',r16:'Round of 16',qf:'Cuartos de Final',sf:'Semifinales',fin:'Final'};
+  const hasKOPreds=Object.values(kopreds).some(arr=>Array.isArray(arr)&&arr.some(Boolean));
+
+  if(settings.koUnlocked && hasKOPreds){
+    html+=`<div class="pdet-grp-label" style="margin-top:8px;padding-top:14px;border-top:1px solid var(--bdr)">⚔️ Eliminatorias</div>`;
+    ['r32','r16','qf','sf','fin'].forEach(roundId=>{
+      const picks=(kopreds[roundId]||[]).filter(Boolean);
+      const actual=(kr[roundId]||[]).filter(Boolean);
+      if(!picks.length) return;
+      html+=`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);padding:10px 0 5px">${roundLabels[roundId]}</div>`;
+      picks.forEach(t=>{
+        const isCorrect=actual.length>0&&actual.some(a=>a.id===t.id);
+        const isWrong=actual.length>0&&!isCorrect;
+        const badge=actual.length===0?'':(isCorrect?' ✅':' ❌');
+        const bg=actual.length===0?'background:#f3f4f6;color:var(--muted)':isCorrect?'background:var(--grass-0);color:var(--ink3)':'background:var(--red-l);color:#991b1b';
+        html+=`<div style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:100px;font-size:11px;font-weight:600;margin:2px;${bg}">
+          <span>${t.flag||'🏳️'}</span><span>${t.name}${badge}</span>
+        </div>`;
+      });
+    });
+  }
 
   html+=`<button class="pdet-close" onclick="closePdetModal()">Cerrar</button></div>`;
   document.getElementById('pdet-content').innerHTML=html;
