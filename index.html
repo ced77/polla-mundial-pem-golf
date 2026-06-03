@@ -1478,7 +1478,8 @@ function shareInvite(){
   }
 }
 
-function logOut(){\n  if(!confirm('¿Cambiar de usuario?')) return;
+function logOut(){
+  if(!confirm('¿Cambiar de usuario?')) return;
   myId=null; localStorage.removeItem(MY_ID_KEY);
   document.getElementById('reg-view').style.display='block';
   document.getElementById('pred-view').style.display='none';
