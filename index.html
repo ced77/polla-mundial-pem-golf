@@ -277,6 +277,7 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);overscroll-behavior:none;
 .as-pending{background:var(--gold-l);color:var(--gold-d)}
 .as-approved{background:var(--grass-l);color:var(--ink3)}
 .as-paid{background:#fef9c3;color:#713f12}
+.as-kolocked{background:#ede9fe;color:#5b21b6}
 .a-btns-row{display:flex;gap:5px}
 .a-btn{height:28px;padding:0 10px;border-radius:8px;border:none;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap}
 .a-btn-approve{background:var(--grass-l);color:var(--ink3)}
@@ -1134,9 +1135,14 @@ function copyText(txt){
    ============================================================ */
 function renderKnockout(){
   const m=me();
+  const koLocked=m?.koLocked||false;
   const unlocked=settings.koUnlocked && m?.approved;
   document.getElementById('ko-locked-view').style.display=unlocked?'none':'block';
   document.getElementById('ko-open-view').style.display=unlocked?'block':'none';
+  if(!unlocked && koLocked){
+    document.getElementById('ko-locked-view').style.display='block';
+    document.getElementById('ko-locked-view').innerHTML=`<div class="ko-lock-icon">🔒</div><div class="ko-lock-title">Predicción bloqueada</div><div class="ko-lock-sub">El administrador ha cerrado tus predicciones de eliminatorias. Ya no se pueden modificar.</div>`;
+  }
   if(unlocked) renderKOContent();
 }
 
@@ -1173,10 +1179,13 @@ function renderKOContent(){
   // Final winner
   const finWin = () => pick('fin',0);
 
+  const isKOLocked=m?.koLocked||false;
   function teamBtn(t, isWinner, roundId, slot, isChamp=false){
     if(!t) return `<div class="bracket-team tbd"><span class="bracket-flag">🏳️</span><span class="bracket-name" style="color:var(--sub)">TBD</span></div>`;
     const winCls = isChamp&&isWinner?'champ-win':isWinner?'winner':'';
-    return `<div class="bracket-team ${winCls}" onclick="setBracketPick('${roundId}',${slot},'${t.id}')">
+    const clickHandler = isKOLocked ? '' : `onclick="setBracketPick('${roundId}',${slot},'${t.id}')"`;
+    const lockedStyle = isKOLocked ? 'opacity:0.75;cursor:default;pointer-events:none;' : '';
+    return `<div class="bracket-team ${winCls}" ${clickHandler} style="${lockedStyle}">
       <span class="bracket-flag">${t.flag||'🏳️'}</span>
       <span class="bracket-name">${t.name}</span>
     </div>`;
@@ -1192,7 +1201,7 @@ function renderKOContent(){
     </div>`;
   }
 
-  let html = `<div class="ko-note">Toca el equipo ganador — avanza automáticamente</div><div class="bracket-wrap"><div class="bracket">`;
+  let html = (isKOLocked?`<div class="ko-note" style="color:#991b1b;background:var(--red-l);border-radius:10px;padding:8px 12px;margin-bottom:4px">🔒 Tu predicción está bloqueada — solo lectura</div>`:`<div class="ko-note">Toca el equipo ganador — avanza automáticamente</div>`) + `<div class="bracket-wrap"><div class="bracket">`;
 
   // ── R32 ──
   html += `<div class="bracket-round"><div class="bracket-round-title">R32<span class="bracket-pts">+${p.r32??0} pts</span></div><div class="bracket-matches">`;
@@ -1574,18 +1583,24 @@ function renderAdminPlayers(){
     const gpCount=Object.keys(p.gpreds||{}).length;
     const st=p.paid?'as-paid':p.approved?'as-approved':'as-pending';
     const stTxt=p.paid?'💲 Pagado':p.approved?'✅ Aprobado':'⏳ Pendiente';
+    const koLocked=p.koLocked||false;
+    const koCount=(['r32','r16','qf','sf','fin']).reduce((a,r)=>{const arr=p.kopreds?.[r]||[];return a+arr.filter(Boolean).length;},0);
     return `<div class="a-row">
       <div class="a-av" style="background:${col(i)}">${ini(p.name)}</div>
       <div class="a-info">
         <div class="a-name">${p.name}</div>
         <div class="a-email">${p.email}</div>
-        <div class="a-preds">${gpCount}/72 grupos · ${Object.keys(p.kopreds||{}).length} rondas KO</div>
+        <div class="a-preds">${gpCount}/72 grupos · ${koCount} picks KO${koLocked?' 🔒':''}</div>
       </div>
       <div class="a-actions">
-        <span class="a-status ${st}">${stTxt}</span>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;margin-bottom:4px">
+          <span class="a-status ${st}">${stTxt}</span>
+          ${koLocked?`<span class="a-status as-kolocked">🔒 KO</span>`:''}
+        </div>
         <div class="a-btns-row">
           ${!p.approved?`<button class="a-btn a-btn-approve" onclick="approvePlayer('${p.id}')">✓ Aprobar</button>`:''}
           ${p.approved?`<button class="a-btn a-btn-paid" onclick="togglePaid('${p.id}')">${p.paid?'↩ Pago':'💲 Pago'}</button>`:''}
+          ${settings.koUnlocked?`<button class="a-btn" style="${koLocked?'background:rgba(139,92,246,.2);color:#a78bfa;border:1px solid rgba(139,92,246,.3)':'background:rgba(139,92,246,.15);color:#7c3aed;border:1px solid rgba(139,92,246,.25)'}" onclick="toggleKOLock('${p.id}')">${koLocked?'🔓 KO':'🔒 KO'}</button>`:'' }
           <button class="a-btn a-btn-edit" onclick="openEditFor('${p.id}')">✏️</button>
           <button class="a-btn a-btn-del" onclick="deletePlayer('${p.id}')">✕</button>
         </div>
@@ -1597,6 +1612,15 @@ function renderAdminPlayers(){
 async function approvePlayer(id){
   try{ await window._db.updatePlayer(id,{approved:true}); toast('✅ Jugador aprobado'); }
   catch(e){ toast('Error'); }
+}
+
+async function toggleKOLock(id){
+  const p=players.find(x=>x.id===id); if(!p) return;
+  const newVal=!p.koLocked;
+  try{
+    await window._db.updatePlayer(id,{koLocked:newVal});
+    toast(newVal?'🔒 Eliminatorias bloqueadas para '+p.name:'🔓 Eliminatorias desbloqueadas para '+p.name);
+  } catch(e){ toast('Error'); }
 }
 async function togglePaid(id){
   const p=players.find(x=>x.id===id); if(!p) return;
