@@ -1631,9 +1631,7 @@ function renderMatchStats(){
     if(roundId==='r32'){
       t1=teams[2*idx]; t2=teams[2*idx+1];
     } else {
-      // For later rounds, we don't know fixed teams — gather from all players' picks
-      // Determine candidate teams = union of teams players picked as winners of previous round in that slot's lineage
-      // Simplify: just collect whichever teams appear as picks for this round+slot
+      // Collect ALL distinct teams players picked for this slot
       const seen=new Map();
       approved.forEach(p=>{
         const arr=(p.kopreds||{})[roundId]||[];
@@ -1641,6 +1639,7 @@ function renderMatchStats(){
         if(t) seen.set(t.id, t);
       });
       const arr=[...seen.values()];
+      // Sort by vote count descending so top 2 are the main matchup
       t1=arr[0]||null; t2=arr[1]||null;
     }
 
@@ -1653,15 +1652,28 @@ function renderMatchStats(){
     const roundNames={r32:'Round of 32',r16:'Octavos',qf:'Cuartos',sf:'Semifinal',fin:'Final'};
     title=`${roundNames[roundId]||roundId} — ${t1?t1.name:'?'} vs ${t2?t2.name:'?'}`;
 
+    // Build options for the two main teams + "Otro equipo" + "Sin predicción"
     options=[];
     if(t1) options.push({key:t1.id, label:t1.name, flag:t1.flag||'🏳️'});
     if(t2) options.push({key:t2.id, label:t2.name, flag:t2.flag||'🏳️'});
+    options.push({key:'__other__', label:'Otro equipo', flag:'🏳️'});
+    options.push({key:'__none__', label:'Sin predicción', flag:'—'});
     options.forEach(o=>tally[o.key]=[]);
 
     approved.forEach(p=>{
       const arr=(p.kopreds||{})[roundId]||[];
       const pick=arr[idx];
-      if(pick && tally[pick.id]!==undefined){ tally[pick.id].push(p); totalVotes++; }
+      if(!pick){
+        tally['__none__'].push(p);
+      } else if(t1&&pick.id===t1.id){
+        tally[t1.id].push(p); totalVotes++;
+      } else if(t2&&pick.id===t2.id){
+        tally[t2.id].push(p); totalVotes++;
+      } else {
+        // Picked a different team — show their pick
+        tally['__other__'].push({...p, _pickedTeam: pick});
+        totalVotes++;
+      }
     });
   }
 
@@ -1671,17 +1683,23 @@ function renderMatchStats(){
 
   options.forEach(o=>{
     const list=tally[o.key]||[];
-    const pct=totalVotes>0?Math.round((list.length/totalVotes)*100):0;
+    // Hide "Otro equipo" and "Sin predicción" rows if empty
+    if(!list.length && (o.key==='__other__'||o.key==='__none__')) return;
+    const pct=totalVotes>0&&o.key!=='__none__'&&o.key!=='__other__'?Math.round((list.length/totalVotes)*100):
+              totalVotes>0&&o.key==='__other__'?Math.round((list.length/totalVotes)*100):0;
     html+=`<div style="padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.05)">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
         <div style="font-size:13px;font-weight:600;color:#fff">${o.flag} ${o.label}</div>
-        <div style="font-size:12px;font-weight:700;color:var(--grass)">${list.length} voto${list.length!==1?'s':''} · ${pct}%</div>
+        <div style="font-size:12px;font-weight:700;color:${o.key==='__none__'?'rgba(255,255,255,.3)':o.key==='__other__'?'#f59e0b':'var(--grass)'}">${list.length} voto${list.length!==1?'s':''} ${o.key!=='__none__'?'· '+pct+'%':''}</div>
       </div>
-      <div style="background:rgba(255,255,255,.08);border-radius:100px;height:6px;overflow:hidden;margin-bottom:8px">
+      ${o.key!=='__none__'&&o.key!=='__other__'?`<div style="background:rgba(255,255,255,.08);border-radius:100px;height:6px;overflow:hidden;margin-bottom:8px">
         <div style="background:var(--grass);height:100%;width:${pct}%;border-radius:100px;transition:width .3s"></div>
-      </div>
+      </div>`:''}
       <div style="display:flex;flex-wrap:wrap;gap:5px">
-        ${list.length?list.map(p=>`<span style="font-size:10px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.7);padding:3px 9px;border-radius:100px">${p.name}</span>`).join(''):'<span style="font-size:11px;color:rgba(255,255,255,.25)">— nadie —</span>'}
+        ${list.length?list.map(p=>{
+          const teamNote=p._pickedTeam?` → ${p._pickedTeam.flag||'🏳️'} ${p._pickedTeam.name}`:'';
+          return `<span style="font-size:10px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.7);padding:3px 9px;border-radius:100px">${p.name}${teamNote}</span>`;
+        }).join(''):'<span style="font-size:11px;color:rgba(255,255,255,.25)">— nadie —</span>'}
       </div>
     </div>`;
   });
@@ -1702,9 +1720,14 @@ function shareMatchStats(){
   let msg=`📊 *${s.title}*\n\n`;
   s.options.forEach(o=>{
     const list=s.tally[o.key]||[];
-    const pct=s.totalVotes>0?Math.round((list.length/s.totalVotes)*100):0;
-    msg+=`${o.flag} *${o.label}* — ${list.length} voto${list.length!==1?'s':''} (${pct}%)\n`;
-    if(list.length) msg+=list.map(p=>`   • ${p.name}`).join('\n')+'\n';
+    if(!list.length && (o.key==='__other__'||o.key==='__none__')) return;
+    const pct=s.totalVotes>0&&o.key!=='__none__'?Math.round((list.length/s.totalVotes)*100):0;
+    const pctStr=o.key!=='__none__'?` (${pct}%)`:'';
+    msg+=`${o.flag} *${o.label}* — ${list.length} voto${list.length!==1?'s':''}${pctStr}\n`;
+    if(list.length) msg+=list.map(p=>{
+      const note=p._pickedTeam?` → ${p._pickedTeam.flag||''} ${p._pickedTeam.name}`:'';
+      return `   • ${p.name}${note}`;
+    }).join('\n')+'\n';
     else msg+=`   — nadie —\n`;
     msg+='\n';
   });
